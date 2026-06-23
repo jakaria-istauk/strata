@@ -92,8 +92,7 @@
   <!-- Top bar -->
   <header class="flex justify-between items-center w-full px-md h-[56px] sticky top-0 z-50 bg-surface-container border-b border-outline-variant">
     <nav class="flex gap-lg items-center">
-      <span class="flex items-center gap-sm font-display text-lg font-bold text-on-surface"><img src="assets/strata-logo.png" alt="" class="w-6 h-6"/>Strata</span>
-      <div class="hidden md:flex items-center gap-md border-l border-outline-variant pl-lg ml-sm">
+      <div class="flex items-center gap-md">
         <span data-view="browser" class="navtab text-primary font-bold border-b-2 border-primary py-sm cursor-pointer">Data Browser</span>
         <span data-view="query" class="navtab text-on-surface-variant font-medium hover:bg-surface-container-high transition-colors px-sm py-xs rounded cursor-pointer">Query Runner</span>
         <span data-view="dashboard" class="navtab text-on-surface-variant font-medium hover:bg-surface-container-high transition-colors px-sm py-xs rounded cursor-pointer">Dashboard</span>
@@ -109,7 +108,6 @@
         <button data-mode="dark" class="flex items-center justify-center w-7 h-7 rounded-full transition-colors" title="Dark"><span class="material-symbols-outlined text-[18px]">dark_mode</span></button>
         <button data-mode="system" class="flex items-center justify-center w-7 h-7 rounded-full transition-colors" title="System"><span class="material-symbols-outlined text-[18px]">desktop_windows</span></button>
       </div>
-      <div class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container font-bold text-xs">JS</div>
     </div>
   </header>
 
@@ -299,8 +297,8 @@
       <!-- form view -->
       <form id="connForm" class="hidden space-y-md">
         <div>
-          <label class="block text-xs uppercase tracking-wider text-on-surface-variant opacity-70 mb-xs">Profile name</label>
-          <input name="name" required placeholder="e.g. Local Herd" class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-sm py-sm text-on-surface focus:ring-primary focus:border-primary"/>
+          <label class="block text-xs uppercase tracking-wider text-on-surface-variant opacity-70 mb-xs">Profile name <span class="opacity-50 normal-case">(optional)</span></label>
+          <input name="name" placeholder="defaults to user@host" class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-sm py-sm text-on-surface focus:ring-primary focus:border-primary"/>
         </div>
         <div class="grid grid-cols-3 gap-md">
           <div class="col-span-2">

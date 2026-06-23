@@ -261,7 +261,12 @@ async function bulkDelete() {
 }
 
 // events
-$('dbSelect').onchange = (e) => { state.db = e.target.value; loadTables(); };
+$('dbSelect').onchange = (e) => {
+  state.db = e.target.value;
+  $('qDbName').textContent = state.db || '—';          // keep Query Runner in sync
+  if (!$('viewDashboard').classList.contains('hidden')) loadStats(); // refresh Dashboard if open
+  loadTables();
+};
 $('tableFilter').oninput = renderTableList;
 $('perPage').onchange = (e) => { state.perPage = +e.target.value; state.page = 1; loadRows(); };
 $('prevPage').onclick = () => { if (state.page > 1) { state.page--; loadRows(); } };
@@ -521,10 +526,12 @@ function saveProfileFromForm(e) {
   const list = loadProfiles();
   const id = f.dataset.id || uid();
   const remember = f.remember.checked;
+  const host = f.host.value.trim();
+  const port = +f.port.value || 3306;
+  const user = f.user.value.trim();
   const prof = {
-    id, name: f.name.value.trim() || 'Untitled', host: f.host.value.trim(),
-    port: +f.port.value || 3306, user: f.user.value.trim(),
-    db: f.db.value.trim(), remember,
+    id, name: f.name.value.trim() || `${user}@${host}:${port}`, host,
+    port, user, db: f.db.value.trim(), remember,
   };
   if (remember) prof.pass = f.pass.value;
   if (f.pass.value !== '') runtimePass[id] = f.pass.value; // also use this session
