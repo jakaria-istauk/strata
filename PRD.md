@@ -3,7 +3,9 @@
 **A modern, self-hosted database admin client.** Custom UI over a thin PHP+PDO JSON API. Built as a full replacement for Adminer's UI (Option C), not a theme.
 
 - **Status:** Phase 0 complete (Explorer foundation working against live MySQL).
-- **Owner:** linkon@wpdeveloper.com
+- **Owner:** jakariamd35@gmail.com
+- **Name:** Jakaria Istauk
+- **Github:** https://github.com/jakaria-istauk
 - **Last updated:** 2026-06-23
 
 ---
