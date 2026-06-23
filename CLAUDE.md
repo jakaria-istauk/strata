@@ -75,7 +75,7 @@ All planned API actions implemented.
 
 ## Git
 
-- Branch `main`. Commit when the user asks. Author: linkon <linkon@wpdeveloper.com>.
+- Branch `master`. Commit when the user asks. Author: Jakaria Istauk <jakariamd35@gmail.com>.
 - `ui/` and `legacy/` are gitignored (reference only). Don't re-add them.
 - The large `.zip` is gitignored.
 
