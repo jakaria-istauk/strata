@@ -7,6 +7,8 @@ import { Database, Settings, Lock, Sun, Moon, Monitor } from 'lucide-react';
 import ConnModal from './components/ConnModal';
 import Sidebar from './components/Sidebar';
 import TableView from './routes/TableView';
+import QueryEditor from './routes/QueryEditor';
+import Dashboard from './routes/Dashboard';
 import Welcome from './routes/Welcome';
 import { getActiveProfile, needsPassword, setSessionPassword } from './lib/profiles';
 import { setTheme, getTheme, type ThemeMode } from './lib/theme';
@@ -81,6 +83,8 @@ export default function App() {
           <Routes>
             <Route index element={<Welcome />} />
             <Route path="/db/:db" element={<Welcome />} />
+            <Route path="/db/:db/query" element={<QueryEditor />} />
+            <Route path="/db/:db/dashboard" element={<Dashboard />} />
             <Route path="/db/:db/table/:table" element={<TableView />} />
             <Route path="*" element={<Welcome />} />
           </Routes>

@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { useMatch, useNavigate } from 'react-router-dom';
-import { Table2, Search, Loader2 } from 'lucide-react';
+import { Table2, Search, Loader2, LayoutDashboard, Terminal } from 'lucide-react';
 import { useDatabases } from '../hooks/useDatabases';
 import { useTables } from '../hooks/useTables';
 import DbSelect from './DbSelect';
@@ -11,8 +11,11 @@ import DbSelect from './DbSelect';
 export default function Sidebar() {
   const navigate = useNavigate();
   const tableMatch = useMatch('/db/:db/table/:table');
+  const queryMatch = useMatch('/db/:db/query');
+  const dashMatch = useMatch('/db/:db/dashboard');
   const dbMatch = useMatch('/db/:db');
-  const db = tableMatch?.params.db ?? dbMatch?.params.db;
+  const db =
+    tableMatch?.params.db ?? queryMatch?.params.db ?? dashMatch?.params.db ?? dbMatch?.params.db;
   const activeTable = tableMatch?.params.table;
 
   const { data: databases, isLoading: dbsLoading } = useDatabases();
@@ -34,6 +37,32 @@ export default function Sidebar() {
           onSelect={(d) => navigate(`/db/${encodeURIComponent(d)}`)}
         />
       </div>
+
+      {/* Db-scoped nav: dashboard + SQL editor */}
+      {db && (
+        <div className="flex gap-xs border-b border-outline-variant p-sm">
+          <button
+            onClick={() => navigate(`/db/${encodeURIComponent(db)}/dashboard`)}
+            className={`flex flex-1 items-center justify-center gap-sm rounded-lg px-sm py-sm text-sm transition-colors ${
+              dashMatch
+                ? 'bg-secondary-container text-on-secondary-container'
+                : 'text-on-surface hover:bg-surface-container-high'
+            }`}
+          >
+            <LayoutDashboard size={14} /> Dashboard
+          </button>
+          <button
+            onClick={() => navigate(`/db/${encodeURIComponent(db)}/query`)}
+            className={`flex flex-1 items-center justify-center gap-sm rounded-lg px-sm py-sm text-sm transition-colors ${
+              queryMatch
+                ? 'bg-secondary-container text-on-secondary-container'
+                : 'text-on-surface hover:bg-surface-container-high'
+            }`}
+          >
+            <Terminal size={14} /> SQL
+          </button>
+        </div>
+      )}
 
       {/* Table filter */}
       {db && (

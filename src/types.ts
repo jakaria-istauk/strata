@@ -107,6 +107,13 @@ export interface TestConnectionResult {
   host: string;
 }
 
+/** Column descriptor returned by the `query` action (name only is meaningful). */
+export interface QueryColumn {
+  name: string;
+  key: string;
+  type: string;
+}
+
 export type QueryResult =
-  | { type: 'result'; columns: string[]; rows: Row[]; rowCount: number; ms: number }
+  | { type: 'result'; columns: QueryColumn[]; rows: Row[]; rowCount: number; ms: number }
   | { type: 'exec'; affected: number; ms: number };
