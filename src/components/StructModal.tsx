@@ -2,11 +2,13 @@
 // add and drop columns. Builds alter_table ops (change/add/drop) on Apply.
 
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Table2, X, Plus, Trash2, Undo2, Loader2, KeyRound } from 'lucide-react';
 import { api, ApiError } from '../api';
 import { isNullable, type Column } from '../types';
 import TypeSelect from './TypeSelect';
+import ConfirmDanger from './ConfirmDanger';
 import { useToast } from './Toast';
 
 interface Props {
@@ -47,10 +49,23 @@ function toDraft(c: Column): ColDraft {
 export default function StructModal({ db, table, columns, onClose }: Props) {
   const toast = useToast();
   const qc = useQueryClient();
+  const navigate = useNavigate();
 
   const initial = useMemo(() => columns.map(toDraft), [columns]);
   const [drafts, setDrafts] = useState<ColDraft[]>(initial);
   const initialByUid = useMemo(() => new Map(initial.map((d) => [d.uid, d])), [initial]);
+  const [confirmDrop, setConfirmDrop] = useState(false);
+
+  const dropTable = useMutation({
+    mutationFn: () => api<{ ok: true; dropped: string }>('drop_table', { db, table }, { db }),
+    onSuccess: (res) => {
+      toast.success(`Table “${res.dropped}” dropped.`);
+      qc.invalidateQueries({ queryKey: ['tables', db] });
+      onClose();
+      navigate(`/db/${encodeURIComponent(db)}`);
+    },
+    onError: (e) => toast.error(e instanceof ApiError ? e.message : String(e)),
+  });
 
   function update(uid: number, patch: Partial<ColDraft>) {
     setDrafts((list) => list.map((d) => (d.uid === uid ? { ...d, ...patch } : d)));
@@ -237,6 +252,12 @@ export default function StructModal({ db, table, columns, onClose }: Props) {
         </div>
 
         <footer className="flex items-center gap-sm border-t border-outline-variant px-lg py-md">
+          <button
+            onClick={() => setConfirmDrop(true)}
+            className="flex items-center gap-sm rounded-lg border border-error/40 px-md py-sm text-sm text-error hover:bg-error/10"
+          >
+            <Trash2 size={14} /> Drop table
+          </button>
           <span className="text-xs text-on-surface-variant">
             {ops.length} pending change{ops.length === 1 ? '' : 's'}
           </span>
@@ -256,6 +277,23 @@ export default function StructModal({ db, table, columns, onClose }: Props) {
           </button>
         </footer>
       </div>
+
+      {confirmDrop && (
+        <ConfirmDanger
+          title="Drop table"
+          message={
+            <>
+              Permanently drop the table <span className="font-mono font-semibold">{table}</span> and
+              all its data? This cannot be undone.
+            </>
+          }
+          confirmWord={table}
+          confirmLabel="Drop table"
+          busy={dropTable.isPending}
+          onConfirm={() => dropTable.mutate()}
+          onCancel={() => setConfirmDrop(false)}
+        />
+      )}
     </div>
   );
 }

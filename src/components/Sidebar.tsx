@@ -3,13 +3,21 @@
 
 import { useState } from 'react';
 import { useMatch, useNavigate } from 'react-router-dom';
-import { Table2, Search, Loader2, LayoutDashboard, Terminal } from 'lucide-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Table2, Search, Loader2, LayoutDashboard, Terminal, Plus, Trash2 } from 'lucide-react';
 import { useDatabases } from '../hooks/useDatabases';
 import { useTables } from '../hooks/useTables';
 import DbSelect from './DbSelect';
+import NewDbModal from './NewDbModal';
+import NewTableModal from './NewTableModal';
+import ConfirmDanger from './ConfirmDanger';
+import { useToast } from './Toast';
+import { api, ApiError } from '../api';
 
 export default function Sidebar() {
   const navigate = useNavigate();
+  const qc = useQueryClient();
+  const toast = useToast();
   const tableMatch = useMatch('/db/:db/table/:table');
   const queryMatch = useMatch('/db/:db/query');
   const dashMatch = useMatch('/db/:db/dashboard');
@@ -22,20 +30,45 @@ export default function Sidebar() {
   const { data: tables, isLoading: tablesLoading, error } = useTables(db);
   const [filter, setFilter] = useState('');
 
+  const [showNewDb, setShowNewDb] = useState(false);
+  const [showNewTable, setShowNewTable] = useState(false);
+  const [confirmDropDb, setConfirmDropDb] = useState(false);
+
+  const dropDb = useMutation({
+    mutationFn: () => api<{ ok: true; dropped: string }>('drop_database', { db }),
+    onSuccess: (res) => {
+      toast.success(`Database “${res.dropped}” dropped.`);
+      setConfirmDropDb(false);
+      qc.invalidateQueries({ queryKey: ['databases'] });
+      navigate('/');
+    },
+    onError: (e) => toast.error(e instanceof ApiError ? e.message : String(e)),
+  });
+
   const shown = (tables ?? []).filter((t) =>
     t.name.toLowerCase().includes(filter.toLowerCase()),
   );
 
   return (
     <aside className="flex w-64 shrink-0 flex-col border-r border-outline-variant bg-surface-container-low">
-      {/* DB select */}
-      <div className="border-b border-outline-variant p-sm">
-        <DbSelect
-          databases={databases ?? []}
-          value={db}
-          loading={dbsLoading}
-          onSelect={(d) => navigate(`/db/${encodeURIComponent(d)}`)}
-        />
+      {/* DB select + new database */}
+      <div className="flex items-center gap-xs border-b border-outline-variant p-sm">
+        <div className="min-w-0 flex-1">
+          <DbSelect
+            databases={databases ?? []}
+            value={db}
+            loading={dbsLoading}
+            onSelect={(d) => navigate(`/db/${encodeURIComponent(d)}`)}
+          />
+        </div>
+        <button
+          onClick={() => setShowNewDb(true)}
+          title="New database"
+          aria-label="New database"
+          className="shrink-0 rounded-lg border border-outline-variant bg-surface p-sm text-on-surface-variant hover:bg-surface-container-high"
+        >
+          <Plus size={16} />
+        </button>
       </div>
 
       {/* Db-scoped nav: dashboard + SQL editor */}
@@ -60,6 +93,30 @@ export default function Sidebar() {
             }`}
           >
             <Terminal size={14} /> SQL
+          </button>
+        </div>
+      )}
+
+      {/* Table actions: new table + drop database */}
+      {db && (
+        <div className="flex items-center gap-xs border-b border-outline-variant px-sm pt-sm">
+          <span className="px-xs text-xs font-medium uppercase tracking-wide text-on-surface-variant">
+            Tables
+          </span>
+          <button
+            onClick={() => setShowNewTable(true)}
+            title="New table"
+            className="ml-auto flex items-center gap-xs rounded-lg border border-outline-variant px-sm py-1 text-xs text-on-surface hover:bg-surface-container-high"
+          >
+            <Plus size={13} /> Table
+          </button>
+          <button
+            onClick={() => setConfirmDropDb(true)}
+            title="Drop database"
+            aria-label="Drop database"
+            className="rounded-lg border border-error/40 p-1 text-error hover:bg-error/10"
+          >
+            <Trash2 size={13} />
           </button>
         </div>
       )}
@@ -131,6 +188,42 @@ export default function Sidebar() {
           })}
         </ul>
       </nav>
+
+      {showNewDb && (
+        <NewDbModal
+          onClose={() => setShowNewDb(false)}
+          onCreated={(name) => {
+            setShowNewDb(false);
+            navigate(`/db/${encodeURIComponent(name)}`);
+          }}
+        />
+      )}
+      {showNewTable && db && (
+        <NewTableModal
+          db={db}
+          onClose={() => setShowNewTable(false)}
+          onCreated={(table) => {
+            setShowNewTable(false);
+            navigate(`/db/${encodeURIComponent(db)}/table/${encodeURIComponent(table)}`);
+          }}
+        />
+      )}
+      {confirmDropDb && db && (
+        <ConfirmDanger
+          title="Drop database"
+          message={
+            <>
+              Permanently drop the database <span className="font-mono font-semibold">{db}</span> and
+              all its tables? This cannot be undone.
+            </>
+          }
+          confirmWord={db}
+          confirmLabel="Drop database"
+          busy={dropDb.isPending}
+          onConfirm={() => dropDb.mutate()}
+          onCancel={() => setConfirmDropDb(false)}
+        />
+      )}
     </aside>
   );
 }
