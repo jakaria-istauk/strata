@@ -94,7 +94,8 @@ All planned API actions implemented.
 React SPA rebuild (branch `react`). The API (`api.php`) and all its actions above are complete and unchanged. Front-end phases — see [docs/PLAN.md](docs/PLAN.md):
 
 - **Phase 1 (Scaffold) ✅** — Vite+TS+Tailwind, token theming, lucide, self-hosted fonts, Query client, dev proxy; builds to `dist/`, `strata.test` linked, `make zip` round-trip verified.
-- **Phase 2 (Data layer) 🚧 NEXT** — `api.ts`/`types.ts`/`lib/profiles.ts` + ConnModal.
-- Phases 3–8: Explorer core · Row CRUD · Grid polish · SQL editor + Dashboard · Schema ops · Cutover.
+- **Phase 2 (Data layer) ✅** — `api.ts` (typed POST wrapper + `ApiError`), `types.ts`, `lib/profiles.ts` (localStorage profiles, runtime-only passwords, `activeConn()`), `components/ConnModal.tsx` (profile CRUD + `test_connection`); app gated on active connection w/ password re-prompt. Chrome-verified against live MySQL.
+- **Phase 3 (Explorer core) 🚧 NEXT** — Sidebar (DbSelect + TableList + filter), routing `/db/:db/table/:table`, Grid + Pagination + Toolbar.
+- Phases 4–8: Row CRUD · Grid polish · SQL editor + Dashboard · Schema ops · Cutover.
 
 Per-column **formats** (md5/sha1/sha256) are a Strata-only property kept in localStorage (`strata-formats:<db>.<table>`); on row save the client sends `transforms` for new/edited fields and `api.php` hashes server-side. Untouched hashed fields aren't re-hashed on edit. (Lands in the React build at Phase 4/7.)

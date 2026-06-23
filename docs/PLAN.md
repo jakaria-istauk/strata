@@ -63,14 +63,15 @@ api.php  (PHP + PDO, stateless — unchanged)
 - [x] Build → `dist/` (+ api.php); `strata.test` linked; `make zip` round-trip.
 - **Verified (Chrome):** renders at strata.test + from clean unzip; fonts loaded; console clean.
 
-## Phase 2 — Data layer 🚧 NEXT
-- [ ] `src/api.ts` — typed `api(action, params)` POST wrapper (injects active `conn`, throws on `{error}`).
-- [ ] `src/types.ts` — API contract types (Column, Row, Stats, Profile, …).
-- [ ] `lib/profiles.ts` — localStorage profiles, active id, runtime-only passwords, `activeConn()`.
-- [ ] ConnModal + profile CRUD (add/edit/delete/switch) + `test_connection`.
-- [ ] Gate the app on an active connection (prompt when password needed).
+## Phase 2 — Data layer ✅ DONE
+- [x] `src/api.ts` — typed `api(action, params)` POST wrapper (injects active `conn`, throws `ApiError` on `{error}`/non-2xx/network).
+- [x] `src/types.ts` — API contract types (Conn, Profile, Column, Row, RowsResult, Stats, QueryResult, …).
+- [x] `lib/profiles.ts` — localStorage profiles, active id, runtime-only passwords, `connFor()`/`activeConn()`.
+- [x] ConnModal + profile CRUD (add/edit/delete/switch) + `test_connection`.
+- [x] Gate the app on an active connection; password re-prompt when `remember` is off.
+- **Verified (Chrome):** no-profile gate → ConnModal; Test → "Connected · MySQL 9.2.0"; Save & Connect → live `databases` (13) via TanStack Query; reload re-prompts password (remember off); unlock restores; console clean.
 
-## Phase 3 — Explorer core
+## Phase 3 — Explorer core 🚧 NEXT
 - [ ] Sidebar: DbSelect + TableList + filter.
 - [ ] Routing: `/db/:db/table/:table`; page/sort/search in URL search params.
 - [ ] Grid + Pagination + Toolbar (sort, search). Hooks: `useDatabases`, `useTables`, `useRows`.
