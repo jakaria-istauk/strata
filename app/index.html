@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NexusDB Pro — Explorer</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Geist:wght@500;600;700;800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: { extend: {
+      colors: {
+        "primary": "#bdc2ff", "on-primary": "#131e8c",
+        "primary-container": "#818cf8", "on-primary-container": "#101b8a",
+        "secondary": "#c0c1ff", "secondary-container": "#3131c0", "on-secondary-container": "#b0b2ff",
+        "tertiary": "#f7bd3e", "error": "#ffb4ab",
+        "background": "#121319", "on-background": "#e4e1eb",
+        "surface": "#121319", "on-surface": "#e4e1eb", "on-surface-variant": "#c6c5d5",
+        "surface-dim": "#121319", "surface-bright": "#393840",
+        "surface-container-lowest": "#0d0e14", "surface-container-low": "#1b1b22",
+        "surface-container": "#1f1f26", "surface-container-high": "#292930",
+        "surface-container-highest": "#34343b", "surface-variant": "#34343b",
+        "outline": "#908f9e", "outline-variant": "#454653"
+      },
+      borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+      spacing: { "base": "4px", "xs": "4px", "sm": "8px", "md": "16px", "lg": "24px", "xl": "48px" },
+      fontFamily: { "display": ["Geist"], "body": ["Inter"], "mono": ["JetBrains Mono"] }
+    }}
+  }
+</script>
+<style>
+  body { background-color: #0a0a0a; color: #e4e1eb; overflow: hidden; }
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; }
+  .scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+  .scroll::-webkit-scrollbar-track { background: #121319; }
+  .scroll::-webkit-scrollbar-thumb { background: #34343b; border-radius: 4px; }
+  .scroll::-webkit-scrollbar-thumb:hover { background: #454653; }
+  .glass-panel { background: rgba(31,31,38,0.7); backdrop-filter: blur(12px); border: 1px solid #1f1f23; }
+</style>
+</head>
+<body class="font-body text-sm">
+
+<!-- Sidebar -->
+<aside class="flex flex-col h-screen fixed left-0 top-0 pt-xl px-sm pb-md bg-surface border-r border-outline-variant w-[260px] z-40">
+  <div class="mb-lg px-md">
+    <h1 class="font-display text-lg font-bold text-primary">NexusDB Pro</h1>
+    <p class="text-on-surface-variant text-xs mt-xs opacity-60">v2.4.0 · Herd MySQL</p>
+  </div>
+
+  <div class="px-sm mb-sm">
+    <label class="text-xs text-on-surface-variant opacity-60 uppercase tracking-wider px-sm">Database</label>
+    <select id="dbSelect" class="mt-xs w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-sm py-sm text-on-surface focus:ring-primary focus:border-primary"></select>
+  </div>
+
+  <div class="px-sm mb-xs flex items-center justify-between">
+    <span class="text-xs text-on-surface-variant opacity-60 uppercase tracking-wider px-sm">Tables</span>
+    <span id="tableCount" class="text-xs text-on-surface-variant opacity-40 px-sm"></span>
+  </div>
+  <div class="px-sm mb-sm">
+    <input id="tableFilter" type="text" placeholder="Filter tables…" class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-sm py-xs text-xs text-on-surface focus:ring-primary focus:border-primary"/>
+  </div>
+  <nav id="tableList" class="flex-1 overflow-auto scroll space-y-[2px] px-xs"></nav>
+
+  <div class="mt-auto border-t border-outline-variant pt-md px-sm">
+    <a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-all rounded-lg" href="#">
+      <span class="material-symbols-outlined text-[20px]">description</span> Docs
+    </a>
+  </div>
+</aside>
+
+<!-- Main -->
+<main class="ml-[260px] flex flex-col h-screen relative">
+  <!-- Top bar -->
+  <header class="flex justify-between items-center w-full px-md h-[56px] sticky top-0 z-50 bg-surface-container border-b border-outline-variant">
+    <nav class="flex gap-lg items-center">
+      <span class="font-display text-lg font-bold text-on-surface">NexusDB</span>
+      <div class="hidden md:flex items-center gap-md border-l border-outline-variant pl-lg ml-sm">
+        <span class="text-primary font-bold border-b-2 border-primary py-sm cursor-pointer">Data Browser</span>
+        <span class="text-on-surface-variant font-medium hover:bg-surface-container-high transition-colors px-sm py-xs rounded cursor-pointer opacity-50">Query Runner</span>
+        <span class="text-on-surface-variant font-medium hover:bg-surface-container-high transition-colors px-sm py-xs rounded cursor-pointer opacity-50">Visualizer</span>
+      </div>
+    </nav>
+    <div class="flex items-center gap-md">
+      <div class="bg-surface-container-lowest border border-outline-variant rounded-full flex items-center px-sm py-1 gap-sm">
+        <span class="material-symbols-outlined text-base text-on-surface-variant">search</span>
+        <input id="rowSearch" class="bg-transparent border-none text-sm focus:ring-0 w-56 text-on-surface" placeholder="Search rows in table…" type="text"/>
+      </div>
+      <div class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container font-bold text-xs">JS</div>
+    </div>
+  </header>
+
+  <!-- Content -->
+  <div class="flex-1 flex flex-col overflow-hidden p-md gap-md">
+    <!-- Context header + toolbar -->
+    <div class="flex flex-col gap-sm">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-sm">
+          <span class="material-symbols-outlined text-primary">table_rows</span>
+          <h2 id="ctxTable" class="font-display text-lg font-bold text-on-surface">—</h2>
+          <span id="ctxSchema" class="px-sm py-[2px] rounded bg-secondary-container text-on-secondary-container text-[11px] font-mono tracking-wider"></span>
+          <span id="ctxRows" class="text-on-surface-variant text-sm opacity-60 ml-sm"></span>
+        </div>
+      </div>
+      <div class="glass-panel p-sm rounded-lg flex items-center justify-between gap-md">
+        <div class="flex items-center gap-sm">
+          <button id="btnRefresh" class="flex items-center gap-sm px-sm py-sm rounded border border-outline-variant hover:bg-surface-container-high transition-colors text-[13px]">
+            <span class="material-symbols-outlined text-[18px]">refresh</span> Refresh
+          </button>
+          <button id="btnExport" class="flex items-center gap-sm px-sm py-sm rounded border border-outline-variant hover:bg-surface-container-high transition-colors text-[13px]">
+            <span class="material-symbols-outlined text-[18px]">download</span> Export CSV
+          </button>
+        </div>
+        <div class="flex items-center gap-md">
+          <div class="flex items-center gap-sm text-sm text-on-surface-variant">
+            <span>Rows per page:</span>
+            <select id="perPage" class="bg-surface-container-lowest border border-outline-variant rounded px-sm py-xs text-xs focus:ring-primary focus:border-primary">
+              <option>50</option><option>100</option><option>500</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-sm">
+            <span id="pageInfo" class="text-sm text-on-surface-variant">—</span>
+            <div class="flex border border-outline-variant rounded overflow-hidden">
+              <button id="prevPage" class="p-xs hover:bg-surface-container-high border-r border-outline-variant material-symbols-outlined text-[18px]">chevron_left</button>
+              <button id="nextPage" class="p-xs hover:bg-surface-container-high material-symbols-outlined text-[18px]">chevron_right</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data grid -->
+    <div class="flex-1 glass-panel rounded-xl overflow-hidden flex flex-col">
+      <div id="gridWrap" class="scroll flex-1 overflow-auto">
+        <table class="w-full text-left border-collapse min-w-[800px]">
+          <thead id="gridHead" class="sticky top-0 z-20"></thead>
+          <tbody id="gridBody" class="font-mono text-sm"></tbody>
+        </table>
+        <div id="gridMsg" class="hidden p-xl text-center text-on-surface-variant opacity-60"></div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="flex items-center justify-between text-sm text-on-surface-variant opacity-60 font-mono">
+      <div class="flex items-center gap-lg">
+        <span class="flex items-center gap-xs"><span class="w-2 h-2 rounded-full bg-green-500"></span> <span id="connInfo">Connected</span></span>
+        <span id="queryTime"></span>
+      </div>
+      <div class="flex items-center gap-lg"><span>UTF-8 · InnoDB</span></div>
+    </footer>
+  </div>
+</main>
+
+<script>
+const API = 'api.php';
+const state = { db: null, table: null, schema: 'PUBLIC', page: 1, perPage: 50, sort: '', dir: 'ASC', search: '', tables: [] };
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+async function api(action, params = {}) {
+  const qs = new URLSearchParams({ action, ...params });
+  const res = await fetch(`${API}?${qs}`);
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+async function loadDatabases() {
+  const { databases } = await api('databases');
+  const sel = $('dbSelect');
+  const skip = new Set(['information_schema','performance_schema','mysql','sys']);
+  const ordered = [...databases.filter(d => !skip.has(d)), ...databases.filter(d => skip.has(d))];
+  sel.innerHTML = ordered.map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join('');
+  state.db = ordered[0];
+  sel.value = state.db;
+  await loadTables();
+}
+
+async function loadTables() {
+  const { tables } = await api('tables', { db: state.db });
+  state.tables = tables;
+  renderTableList();
+  $('connInfo').textContent = `Connected · ${state.db}`;
+  if (tables.length) selectTable(tables[0].name);
+  else { state.table = null; renderEmpty('No tables in this database'); }
+}
+
+function renderTableList() {
+  const filter = $('tableFilter').value.toLowerCase();
+  const list = state.tables.filter(t => t.name.toLowerCase().includes(filter));
+  $('tableCount').textContent = `${list.length}`;
+  $('tableList').innerHTML = list.map(t => {
+    const active = t.name === state.table;
+    const icon = t.type === 'VIEW' ? 'visibility' : 'table_rows';
+    return `<a href="#" data-table="${esc(t.name)}"
+      class="flex items-center justify-between gap-sm px-sm py-xs rounded-lg transition-colors ${active ? 'bg-secondary-container text-on-secondary-container font-semibold' : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low'}">
+      <span class="flex items-center gap-sm truncate"><span class="material-symbols-outlined text-[18px] opacity-70">${icon}</span><span class="truncate">${esc(t.name)}</span></span>
+      <span class="text-[10px] opacity-50 font-mono shrink-0">${t.rows ?? 0}</span></a>`;
+  }).join('') || `<p class="text-xs text-on-surface-variant opacity-40 px-sm py-md">No match</p>`;
+  $('tableList').querySelectorAll('a').forEach(a =>
+    a.onclick = (e) => { e.preventDefault(); selectTable(a.dataset.table); });
+}
+
+function selectTable(name) {
+  state.table = name; state.page = 1; state.sort = ''; state.dir = 'ASC'; state.search = '';
+  $('rowSearch').value = '';
+  renderTableList();
+  loadRows();
+}
+
+function renderEmpty(msg) {
+  $('gridHead').innerHTML = ''; $('gridBody').innerHTML = '';
+  const m = $('gridMsg'); m.textContent = msg; m.classList.remove('hidden');
+  $('ctxTable').textContent = state.table || '—';
+  $('ctxRows').textContent = ''; $('pageInfo').textContent = '—';
+}
+
+function badge(val) {
+  const v = String(val).toUpperCase();
+  const map = {
+    ACTIVE: 'bg-green-950/30 text-green-400 border-green-900/50',
+    PUBLISH: 'bg-green-950/30 text-green-400 border-green-900/50',
+    PENDING: 'bg-amber-950/30 text-amber-400 border-amber-900/50',
+    DRAFT: 'bg-amber-950/30 text-amber-400 border-amber-900/50',
+    SUSPENDED: 'bg-red-950/30 text-red-400 border-red-900/50',
+    TRASH: 'bg-red-950/30 text-red-400 border-red-900/50',
+    INACTIVE: 'bg-surface-variant text-on-surface-variant border-outline-variant',
+  };
+  const cls = map[v] || 'bg-surface-variant text-on-surface-variant border-outline-variant';
+  return `<span class="inline-flex items-center px-sm py-[2px] rounded-full border text-[10px] font-semibold ${cls}">${esc(val)}</span>`;
+}
+
+const STATUS_COLS = new Set(['status','state','post_status','comment_approved']);
+
+function cell(col, val) {
+  if (val === null) return `<span class="opacity-30 italic">NULL</span>`;
+  if (STATUS_COLS.has(col.name.toLowerCase()) && String(val).length < 24) return badge(val);
+  if (col.key === 'PRI') return `<span class="text-on-surface">${esc(val)}</span>`;
+  const s = String(val);
+  if (/email/i.test(col.name) || (/url|link/i.test(col.name) && /^https?:/.test(s)))
+    return `<span class="text-primary font-medium truncate inline-block max-w-[320px]">${esc(s)}</span>`;
+  const trunc = s.length > 120 ? esc(s.slice(0,120)) + '…' : esc(s);
+  return `<span class="text-on-surface-variant truncate inline-block max-w-[420px]" title="${esc(s)}">${trunc}</span>`;
+}
+
+async function loadRows() {
+  if (!state.table) return;
+  $('gridMsg').classList.add('hidden');
+  const t0 = performance.now();
+  let data;
+  try {
+    data = await api('rows', {
+      db: state.db, table: state.table, page: state.page, per_page: state.perPage,
+      sort: state.sort, dir: state.dir, search: state.search,
+    });
+  } catch (e) { renderEmpty('Error: ' + e.message); return; }
+  const ms = Math.round(performance.now() - t0);
+
+  // context header
+  $('ctxTable').textContent = data.table;
+  $('ctxSchema').textContent = `SCHEMA: ${state.db.toUpperCase()}`;
+  $('ctxRows').textContent = `${data.total.toLocaleString()} rows`;
+  $('queryTime').textContent = `Query took ${ms}ms`;
+  const from = data.total ? (data.page - 1) * data.per_page + 1 : 0;
+  const to = Math.min(data.page * data.per_page, data.total);
+  $('pageInfo').textContent = `${from}-${to} of ${data.total.toLocaleString()}`;
+
+  // head
+  $('gridHead').innerHTML = `<tr class="bg-surface-container-highest border-b border-outline-variant">${
+    data.columns.map(c => {
+      const sorted = state.sort === c.name;
+      const arrow = sorted ? (state.dir === 'ASC' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more';
+      const keyIcon = c.key === 'PRI' ? '<span class="material-symbols-outlined text-[13px] text-tertiary">key</span>' : '';
+      return `<th data-col="${esc(c.name)}" class="px-md py-sm text-[13px] text-on-surface-variant uppercase tracking-wider cursor-pointer hover:bg-surface-variant transition-colors select-none">
+        <div class="flex items-center gap-xs">${keyIcon}${esc(c.name)}
+          <span class="material-symbols-outlined text-[14px] ${sorted ? 'opacity-100 text-primary' : 'opacity-40'}">${arrow}</span></div></th>`;
+    }).join('')
+  }</tr>`;
+  $('gridHead').querySelectorAll('th').forEach(th =>
+    th.onclick = () => {
+      const c = th.dataset.col;
+      if (state.sort === c) state.dir = state.dir === 'ASC' ? 'DESC' : 'ASC';
+      else { state.sort = c; state.dir = 'ASC'; }
+      state.page = 1; loadRows();
+    });
+
+  // body
+  if (!data.rows.length) { renderEmpty(state.search ? 'No rows match search' : 'Table is empty'); return; }
+  $('gridBody').innerHTML = data.rows.map((r, i) =>
+    `<tr class="border-b border-outline-variant hover:bg-surface-container-highest/50 transition-colors ${i%2 ? 'bg-surface-container-low/30':''}">${
+      data.columns.map(c => `<td class="px-md py-xs">${cell(c, r[c.name])}</td>`).join('')
+    }</tr>`).join('');
+  state._lastData = data;
+}
+
+function exportCsv() {
+  const d = state._lastData;
+  if (!d || !d.rows.length) return;
+  const cols = d.columns.map(c => c.name);
+  const q = (v) => v === null ? '' : `"${String(v).replace(/"/g,'""')}"`;
+  const csv = [cols.join(','), ...d.rows.map(r => cols.map(c => q(r[c])).join(','))].join('\r\n');
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = `${state.db}.${state.table}_p${state.page}.csv`; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// events
+$('dbSelect').onchange = (e) => { state.db = e.target.value; loadTables(); };
+$('tableFilter').oninput = renderTableList;
+$('perPage').onchange = (e) => { state.perPage = +e.target.value; state.page = 1; loadRows(); };
+$('prevPage').onclick = () => { if (state.page > 1) { state.page--; loadRows(); } };
+$('nextPage').onclick = () => { const d = state._lastData; if (d && state.page < d.pages) { state.page++; loadRows(); } };
+$('btnRefresh').onclick = loadRows;
+$('btnExport').onclick = exportCsv;
+let searchTimer;
+$('rowSearch').oninput = (e) => { clearTimeout(searchTimer); searchTimer = setTimeout(() => { state.search = e.target.value.trim(); state.page = 1; loadRows(); }, 300); };
+
+loadDatabases().catch(e => renderEmpty('Init error: ' + e.message));
+</script>
+</body>
+</html>

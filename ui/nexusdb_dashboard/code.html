@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NexusDB Pro - Dashboard</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&amp;family=Inter:wght@100..900&amp;family=JetBrains+Mono:wght@100..800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "secondary-fixed": "#e1e0ff",
+                    "primary-container": "#818cf8",
+                    "on-error": "#690005",
+                    "error-container": "#93000a",
+                    "surface-container-low": "#1b1b22",
+                    "on-secondary": "#1000a9",
+                    "surface-variant": "#34343b",
+                    "secondary": "#c0c1ff",
+                    "on-primary-container": "#101b8a",
+                    "on-tertiary-fixed-variant": "#5d4200",
+                    "outline-variant": "#454653",
+                    "primary": "#bdc2ff",
+                    "on-primary": "#131e8c",
+                    "primary-fixed": "#e0e0ff",
+                    "on-error-container": "#ffdad6",
+                    "surface-dim": "#121319",
+                    "tertiary-fixed-dim": "#f7bd3e",
+                    "tertiary-fixed": "#ffdea3",
+                    "surface-container-high": "#292930",
+                    "on-primary-fixed-variant": "#2f3aa3",
+                    "primary-fixed-dim": "#bdc2ff",
+                    "on-background": "#e4e1eb",
+                    "on-surface": "#e4e1eb",
+                    "on-secondary-fixed-variant": "#2f2ebe",
+                    "secondary-container": "#3131c0",
+                    "secondary-fixed-dim": "#c0c1ff",
+                    "outline": "#908f9e",
+                    "inverse-primary": "#4953bc",
+                    "on-secondary-fixed": "#07006c",
+                    "background": "#121319",
+                    "surface-bright": "#393840",
+                    "inverse-surface": "#e4e1eb",
+                    "surface-container": "#1f1f26",
+                    "tertiary-container": "#c08d00",
+                    "on-surface-variant": "#c6c5d5",
+                    "inverse-on-surface": "#303037",
+                    "on-primary-fixed": "#000767",
+                    "surface": "#121319",
+                    "on-secondary-container": "#b0b2ff",
+                    "on-tertiary": "#402d00",
+                    "on-tertiary-fixed": "#261900",
+                    "surface-container-highest": "#34343b",
+                    "error": "#ffb4ab",
+                    "surface-tint": "#bdc2ff",
+                    "tertiary": "#f7bd3e",
+                    "on-tertiary-container": "#3e2b00",
+                    "surface-container-lowest": "#0d0e14"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "base": "4px",
+                    "sm": "8px",
+                    "xl": "48px",
+                    "container-max": "1440px",
+                    "md": "16px",
+                    "gutter": "16px",
+                    "xs": "4px",
+                    "lg": "24px"
+            },
+            "fontFamily": {
+                    "display": ["Geist"],
+                    "body-md": ["Inter"],
+                    "label-md": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "headline-md": ["Geist"],
+                    "headline-lg": ["Geist"],
+                    "mono-code": ["JetBrains Mono"]
+            },
+            "fontSize": {
+                    "display": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                    "body-md": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                    "label-md": ["13px", {"lineHeight": "1", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                    "body-sm": ["12px", {"lineHeight": "1.4", "fontWeight": "400"}],
+                    "body-lg": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "headline-md": ["18px", {"lineHeight": "1.4", "fontWeight": "500"}],
+                    "headline-lg": ["24px", {"lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "mono-code": ["13px", {"lineHeight": "1.6", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #121319;
+            color: #e4e1eb;
+            font-family: 'Inter', sans-serif;
+        }
+        .glass-card {
+            background: rgba(31, 31, 38, 0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid #1f1f23;
+        }
+        .stats-gradient {
+            background: linear-gradient(135deg, rgba(189, 194, 255, 0.05) 0%, rgba(189, 194, 255, 0) 100%);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #121319;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #34343b;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="overflow-hidden">
+<!-- Shell Layout -->
+<div class="flex h-screen w-full">
+<!-- SideNavBar -->
+<aside class="flex flex-col h-screen fixed left-0 top-0 pt-xl px-sm pb-md bg-surface border-r border-outline-variant w-[240px] z-40 hidden md:flex">
+<div class="px-md mb-xl">
+<h1 class="font-display text-headline-md font-bold text-primary">NexusDB Pro</h1>
+<p class="text-on-surface-variant text-body-sm">v2.4.0</p>
+</div>
+<nav class="flex-1 space-y-xs px-xs">
+<!-- Explorer (Active) -->
+<a class="flex items-center gap-md px-md py-sm bg-secondary-container text-on-secondary-container font-semibold rounded-lg transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">database</span>
+<span class="font-body-md text-body-md">Explorer</span>
+</a>
+<!-- Connections -->
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low rounded-lg transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">lan</span>
+<span class="font-body-md text-body-md">Connections</span>
+</a>
+<!-- Favorites -->
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low rounded-lg transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">star</span>
+<span class="font-body-md text-body-md">Favorites</span>
+</a>
+<!-- History -->
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low rounded-lg transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="font-body-md text-body-md">History</span>
+</a>
+<!-- Settings -->
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low rounded-lg transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-md text-body-md">Settings</span>
+</a>
+</nav>
+<div class="mt-auto pt-md border-t border-outline-variant px-xs space-y-xs">
+<button class="w-full mb-md flex items-center justify-center gap-sm bg-primary text-on-primary font-bold py-sm rounded-lg hover:brightness-110 transition-all">
+<span class="material-symbols-outlined" style="font-variation-settings: 'opsz' 20;">add</span>
+<span>New Connection</span>
+</button>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low rounded-lg transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="font-body-md text-body-md">Help</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low rounded-lg transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-body-md text-body-md">Docs</span>
+</a>
+</div>
+</aside>
+<!-- Main Canvas -->
+<main class="flex-1 md:ml-[240px] overflow-y-auto bg-background">
+<!-- TopNavBar -->
+<header class="flex justify-between items-center w-full px-md h-xl sticky top-0 z-50 bg-surface-container border-b border-outline-variant">
+<div class="flex items-center gap-lg flex-1">
+<span class="font-display text-headline-md font-bold text-on-surface md:hidden">NexusDB</span>
+<div class="relative w-full max-w-md">
+<span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full bg-surface-container-high border-none rounded-lg pl-xl pr-md py-xs text-body-md focus:ring-1 focus:ring-primary text-on-surface placeholder:text-outline" placeholder="Global query search..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-md">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-colors cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined text-primary">settings_brightness</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-colors cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined text-primary">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Dashboard Content -->
+<div class="p-lg max-w-container-max mx-auto space-y-lg">
+<!-- Welcome Section -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-md">
+<div>
+<h2 class="font-display text-display text-on-surface">System Overview</h2>
+<p class="font-body-md text-on-surface-variant">Real-time performance metrics for Cluster: <span class="font-mono-code text-primary">nexus-prod-01</span></p>
+</div>
+<div class="flex gap-sm">
+<button class="px-md py-sm bg-surface-container-high border border-outline-variant rounded-lg flex items-center gap-sm hover:bg-surface-container-highest transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: 'opsz' 20;">refresh</span>
+<span class="font-label-md text-label-md">Refresh Data</span>
+</button>
+</div>
+</div>
+<!-- Stats Grid (Bento Style) -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-md">
+<!-- Stat Card 1 -->
+<div class="glass-card p-md rounded-xl stats-gradient flex flex-col justify-between">
+<div class="flex items-center justify-between mb-sm">
+<span class="material-symbols-outlined text-primary-container">link</span>
+<span class="text-xs text-primary bg-primary-container/20 px-sm py-xs rounded-full font-bold">+12%</span>
+</div>
+<div>
+<p class="text-on-surface-variant font-label-md text-label-md">Active Connections</p>
+<h3 class="text-display font-display mt-xs">1,284</h3>
+</div>
+</div>
+<!-- Stat Card 2 -->
+<div class="glass-card p-md rounded-xl stats-gradient flex flex-col justify-between">
+<div class="flex items-center justify-between mb-sm">
+<span class="material-symbols-outlined text-secondary">database</span>
+<span class="text-xs text-secondary bg-secondary-container/20 px-sm py-xs rounded-full font-bold">Stable</span>
+</div>
+<div>
+<p class="text-on-surface-variant font-label-md text-label-md">Total Databases</p>
+<h3 class="text-display font-display mt-xs">42</h3>
+</div>
+</div>
+<!-- Stat Card 3 -->
+<div class="glass-card p-md rounded-xl stats-gradient flex flex-col justify-between">
+<div class="flex items-center justify-between mb-sm">
+<span class="material-symbols-outlined text-tertiary">table_chart</span>
+<span class="text-xs text-tertiary bg-tertiary-container/20 px-sm py-xs rounded-full font-bold">2.4k new</span>
+</div>
+<div>
+<p class="text-on-surface-variant font-label-md text-label-md">Total Tables</p>
+<h3 class="text-display font-display mt-xs">18.5k</h3>
+</div>
+</div>
+<!-- Stat Card 4 -->
+<div class="glass-card p-md rounded-xl stats-gradient flex flex-col justify-between">
+<div class="flex items-center justify-between mb-sm">
+<span class="material-symbols-outlined text-error">speed</span>
+<span class="text-xs text-error bg-error-container/20 px-sm py-xs rounded-full font-bold">-4ms</span>
+</div>
+<div>
+<p class="text-on-surface-variant font-label-md text-label-md">Avg Query Latency</p>
+<h3 class="text-display font-display mt-xs">24<span class="text-headline-md text-on-surface-variant">ms</span></h3>
+</div>
+</div>
+<!-- Stat Card 5 -->
+<div class="glass-card p-md rounded-xl stats-gradient flex flex-col justify-between">
+<div class="flex items-center justify-between mb-sm">
+<span class="material-symbols-outlined text-on-secondary-container">storage</span>
+<span class="text-xs text-on-secondary-container bg-secondary-container/20 px-sm py-xs rounded-full font-bold">84% full</span>
+</div>
+<div>
+<p class="text-on-surface-variant font-label-md text-label-md">Storage Used</p>
+<h3 class="text-display font-display mt-xs">1.8<span class="text-headline-md text-on-surface-variant">TB</span></h3>
+</div>
+</div>
+</div>
+<!-- Main Section: Charts and Status -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-lg">
+<!-- Left: Charts Column -->
+<div class="lg:col-span-2 space-y-lg">
+<!-- Query Activity Line Chart -->
+<div class="glass-card p-lg rounded-xl flex flex-col h-[320px] relative overflow-hidden">
+<div class="flex justify-between items-center mb-lg">
+<div>
+<h4 class="font-display text-headline-md text-on-surface">Query Activity</h4>
+<p class="text-body-sm text-on-surface-variant">Transaction volume over the last 7 days</p>
+</div>
+<div class="flex gap-sm">
+<span class="flex items-center gap-xs text-body-sm"><span class="w-3 h-3 rounded-full bg-primary"></span> Read</span>
+<span class="flex items-center gap-xs text-body-sm"><span class="w-3 h-3 rounded-full bg-tertiary"></span> Write</span>
+</div>
+</div>
+<div class="flex-1 flex items-end gap-md pb-md">
+<!-- Mock Chart Bars/Lines -->
+<div class="flex-1 flex flex-col gap-sm group">
+<div class="w-full flex items-end gap-1 h-full">
+<div class="flex-1 bg-primary/20 hover:bg-primary/40 h-[40%] transition-all rounded-t-sm"></div>
+<div class="flex-1 bg-tertiary/20 hover:bg-tertiary/40 h-[20%] transition-all rounded-t-sm"></div>
+</div>
+<span class="text-center text-[10px] text-outline">Mon</span>
+</div>
+<div class="flex-1 flex flex-col gap-sm">
+<div class="w-full flex items-end gap-1 h-full">
+<div class="flex-1 bg-primary/20 hover:bg-primary/40 h-[55%] transition-all rounded-t-sm"></div>
+<div class="flex-1 bg-tertiary/20 hover:bg-tertiary/40 h-[30%] transition-all rounded-t-sm"></div>
+</div>
+<span class="text-center text-[10px] text-outline">Tue</span>
+</div>
+<div class="flex-1 flex flex-col gap-sm">
+<div class="w-full flex items-end gap-1 h-full">
+<div class="flex-1 bg-primary/20 hover:bg-primary/40 h-[80%] transition-all rounded-t-sm"></div>
+<div class="flex-1 bg-tertiary/20 hover:bg-tertiary/40 h-[45%] transition-all rounded-t-sm"></div>
+</div>
+<span class="text-center text-[10px] text-outline">Wed</span>
+</div>
+<div class="flex-1 flex flex-col gap-sm">
+<div class="w-full flex items-end gap-1 h-full">
+<div class="flex-1 bg-primary/20 hover:bg-primary/40 h-[65%] transition-all rounded-t-sm"></div>
+<div class="flex-1 bg-tertiary/20 hover:bg-tertiary/40 h-[35%] transition-all rounded-t-sm"></div>
+</div>
+<span class="text-center text-[10px] text-outline">Thu</span>
+</div>
+<div class="flex-1 flex flex-col gap-sm">
+<div class="w-full flex items-end gap-1 h-full">
+<div class="flex-1 bg-primary/20 hover:bg-primary/40 h-[90%] transition-all rounded-t-sm"></div>
+<div class="flex-1 bg-tertiary/20 hover:bg-tertiary/40 h-[50%] transition-all rounded-t-sm"></div>
+</div>
+<span class="text-center text-[10px] text-outline">Fri</span>
+</div>
+<div class="flex-1 flex flex-col gap-sm">
+<div class="w-full flex items-end gap-1 h-full">
+<div class="flex-1 bg-primary/20 hover:bg-primary/40 h-[45%] transition-all rounded-t-sm"></div>
+<div class="flex-1 bg-tertiary/20 hover:bg-tertiary/40 h-[25%] transition-all rounded-t-sm"></div>
+</div>
+<span class="text-center text-[10px] text-outline">Sat</span>
+</div>
+<div class="flex-1 flex flex-col gap-sm">
+<div class="w-full flex items-end gap-1 h-full">
+<div class="flex-1 bg-primary/20 hover:bg-primary/40 h-[35%] transition-all rounded-t-sm"></div>
+<div class="flex-1 bg-tertiary/20 hover:bg-tertiary/40 h-[15%] transition-all rounded-t-sm"></div>
+</div>
+<span class="text-center text-[10px] text-outline">Sun</span>
+</div>
+</div>
+</div>
+<!-- Database Size Growth Area Chart -->
+<div class="glass-card p-lg rounded-xl flex flex-col h-[320px]">
+<div class="flex justify-between items-center mb-lg">
+<div>
+<h4 class="font-display text-headline-md text-on-surface">Database Size</h4>
+<p class="text-body-sm text-on-surface-variant">Cumulative data growth trends</p>
+</div>
+<div class="text-on-surface-variant font-mono-code text-body-sm bg-surface-container-high px-sm py-xs rounded">
+                                    Total: 1.82 TB
+                                </div>
+</div>
+<!-- Mock Area Chart -->
+<div class="flex-1 relative">
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 100 100">
+<defs>
+<lineargradient id="areaGradient" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="var(--tw-primary)" stop-opacity="0.3"></stop>
+<stop offset="100%" stop-color="var(--tw-primary)" stop-opacity="0"></stop>
+</lineargradient>
+</defs>
+<path d="M0,100 C10,95 20,80 30,85 C40,90 50,70 60,65 C70,60 80,40 90,30 L100,20 L100,100 L0,100 Z" fill="#3131c0" fill-opacity="0.2"></path>
+<path d="M0,100 C10,95 20,80 30,85 C40,90 50,70 60,65 C70,60 80,40 90,30 L100,20" fill="none" stroke="#bdc2ff" stroke-width="0.5"></path>
+</svg>
+<div class="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-20">
+<div class="border-b border-outline-variant w-full h-0"></div>
+<div class="border-b border-outline-variant w-full h-0"></div>
+<div class="border-b border-outline-variant w-full h-0"></div>
+<div class="border-b border-outline-variant w-full h-0"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right: Analytics & Status Column -->
+<div class="space-y-lg">
+<!-- Cluster Health Card -->
+<div class="glass-card rounded-xl overflow-hidden">
+<div class="p-md bg-secondary-container/10 border-b border-outline-variant flex items-center justify-between">
+<h4 class="font-display font-bold text-on-surface">Cluster Health</h4>
+<span class="flex items-center gap-xs text-[10px] uppercase tracking-widest text-on-secondary-container bg-secondary-container px-sm py-xs rounded-full">
+<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                                    Operational
+                                </span>
+</div>
+<div class="p-lg space-y-md">
+<div class="flex justify-between items-center">
+<span class="text-on-surface-variant text-body-md">Uptime</span>
+<span class="font-mono-code text-primary">99.998%</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-on-surface-variant text-body-md">Load Avg</span>
+<span class="font-mono-code text-on-surface">0.42 / 0.51 / 0.48</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-on-surface-variant text-body-md">IOPS</span>
+<span class="font-mono-code text-on-surface">12,450/s</span>
+</div>
+<div class="w-full bg-surface-container-high h-2 rounded-full overflow-hidden mt-lg">
+<div class="bg-primary h-full w-[84%]"></div>
+</div>
+<p class="text-[10px] text-outline text-right italic">CPU Utilization: 84%</p>
+</div>
+</div>
+<!-- Slow Queries Analytics -->
+<div class="glass-card rounded-xl">
+<div class="p-md border-b border-outline-variant flex items-center justify-between">
+<h4 class="font-display font-bold text-on-surface">Slow Queries</h4>
+<button class="text-primary text-body-sm hover:underline">View All</button>
+</div>
+<div class="p-md space-y-sm max-h-[460px] overflow-y-auto">
+<!-- Query Item -->
+<div class="p-sm hover:bg-surface-container-high rounded-lg transition-colors border border-transparent hover:border-outline-variant group">
+<div class="flex justify-between items-start mb-xs">
+<span class="px-sm py-[2px] bg-error-container/20 text-error text-[10px] font-bold rounded">LATENCY</span>
+<span class="font-mono-code text-error text-body-sm">4.2s</span>
+</div>
+<p class="font-mono-code text-[11px] text-on-surface-variant line-clamp-2 bg-surface-container-low p-sm rounded border border-outline-variant group-hover:text-on-surface">
+                                        SELECT * FROM orders JOIN customers ON orders.cust_id = customers.id WHERE orders.created_at &gt; '2023-01-01' ORDER BY orders.total DESC LIMIT 1000;
+                                    </p>
+<div class="flex justify-between items-center mt-sm text-[10px] text-outline">
+<span>User: admin_user</span>
+<span>2 mins ago</span>
+</div>
+</div>
+<!-- Query Item -->
+<div class="p-sm hover:bg-surface-container-high rounded-lg transition-colors border border-transparent hover:border-outline-variant group">
+<div class="flex justify-between items-start mb-xs">
+<span class="px-sm py-[2px] bg-tertiary-container/20 text-tertiary text-[10px] font-bold rounded">LATENCY</span>
+<span class="font-mono-code text-tertiary text-body-sm">1.8s</span>
+</div>
+<p class="font-mono-code text-[11px] text-on-surface-variant line-clamp-2 bg-surface-container-low p-sm rounded border border-outline-variant group-hover:text-on-surface">
+                                        UPDATE inventory SET stock_count = stock_count - 1 WHERE sku IN (SELECT sku FROM temporary_sales_table);
+                                    </p>
+<div class="flex justify-between items-center mt-sm text-[10px] text-outline">
+<span>User: lambda_fn</span>
+<span>15 mins ago</span>
+</div>
+</div>
+<!-- Query Item -->
+<div class="p-sm hover:bg-surface-container-high rounded-lg transition-colors border border-transparent hover:border-outline-variant group">
+<div class="flex justify-between items-start mb-xs">
+<span class="px-sm py-[2px] bg-tertiary-container/20 text-tertiary text-[10px] font-bold rounded">LATENCY</span>
+<span class="font-mono-code text-tertiary text-body-sm">1.5s</span>
+</div>
+<p class="font-mono-code text-[11px] text-on-surface-variant line-clamp-2 bg-surface-container-low p-sm rounded border border-outline-variant group-hover:text-on-surface">
+                                        SELECT COUNT(DISTINCT user_id), action_type FROM user_logs GROUP BY action_type HAVING COUNT(*) &gt; 10000;
+                                    </p>
+<div class="flex justify-between items-center mt-sm text-[10px] text-outline">
+<span>User: data_analyst</span>
+<span>42 mins ago</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Bottom Nav for Mobile -->
+<nav class="md:hidden fixed bottom-0 left-0 right-0 bg-surface-container border-t border-outline-variant flex justify-around py-sm z-50">
+<a class="flex flex-col items-center gap-xs text-primary" href="#">
+<span class="material-symbols-outlined">database</span>
+<span class="text-[10px]">Explorer</span>
+</a>
+<a class="flex flex-col items-center gap-xs text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">lan</span>
+<span class="text-[10px]">Connect</span>
+</a>
+<a class="flex flex-col items-center gap-xs text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="text-[10px]">History</span>
+</a>
+<a class="flex flex-col items-center gap-xs text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-[10px]">Settings</span>
+</a>
+</nav>
+<script>
+        // Simple interactive elements for the dashboard
+        document.querySelectorAll('.glass-card').forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateY(-2px)';
+                card.style.transition = 'transform 0.2s ease-out';
+            });
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(0)';
+            });
+        });
+
+        // Simulating live data update every 5 seconds
+        setInterval(() => {
+            const latencyEl = document.querySelector('h3.text-display.font-display span.text-headline-md');
+            if (latencyEl) {
+                const currentVal = 24;
+                const variance = Math.floor(Math.random() * 5) - 2;
+                latencyEl.parentElement.childNodes[0].textContent = currentVal + variance;
+            }
+        }, 5000);
+    </script>
+</body></html>
