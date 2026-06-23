@@ -127,8 +127,9 @@ function fksOf(PDO $p, string $db, string $table): array {
 /** Return ordered column metadata for a validated db.table. */
 function columnsOf(PDO $p, string $db, string $table): array {
     $stmt = $p->prepare(
-        'SELECT COLUMN_NAME AS name, DATA_TYPE AS type, COLUMN_KEY AS `key`,
-                IS_NULLABLE AS nullable, COLUMN_DEFAULT AS `default`, EXTRA AS extra
+        'SELECT COLUMN_NAME AS name, DATA_TYPE AS type, COLUMN_TYPE AS coltype,
+                COLUMN_KEY AS `key`, IS_NULLABLE AS nullable,
+                COLUMN_DEFAULT AS `default`, EXTRA AS extra
          FROM information_schema.COLUMNS
          WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?
          ORDER BY ORDINAL_POSITION'
@@ -136,6 +137,43 @@ function columnsOf(PDO $p, string $db, string $table): array {
     $stmt->execute([$db, $table]);
     return $stmt->fetchAll();
 }
+
+/**
+ * Build one column definition for CREATE/ALTER from a client-supplied spec.
+ * Name is identifier-validated; type is regex-checked; default is quoted
+ * (expression defaults like CURRENT_TIMESTAMP pass through unquoted).
+ */
+function colClause(PDO $p, array $c): string {
+    $cn   = assertIdent((string)($c['name'] ?? ''), 'column');
+    $type = trim((string)($c['type'] ?? ''));
+    if (!preg_match('/^[A-Za-z0-9_ ,()\']{1,128}$/', $type)) {
+        fail(400, "Invalid column type: $type");
+    }
+    $def = qid($cn) . ' ' . $type . (!empty($c['nullable']) ? ' NULL' : ' NOT NULL');
+    if (!empty($c['auto_increment'])) $def .= ' AUTO_INCREMENT';
+    $d = $c['default'] ?? null;
+    if ($d !== null && $d !== '') {
+        $d = (string)$d;
+        // known expression/keyword defaults pass through; everything else is a string literal
+        if (preg_match('/^(current_timestamp(\(\d*\))?|now\(\)|true|false|null)$/i', $d)) {
+            $def .= ' DEFAULT ' . $d;
+        } else {
+            $def .= ' DEFAULT ' . $p->quote($d);
+        }
+    }
+    return $def;
+}
+
+/** Hash a value for a "format" column. Whitelisted algorithms only. */
+function hashVal(string $algo, string $v): string {
+    return match ($algo) {
+        'md5'    => md5($v),
+        'sha1'   => sha1($v),
+        'sha256' => hash('sha256', $v),
+        default  => $v,
+    };
+}
+const HASH_ALGOS = ['md5', 'sha1', 'sha256'];
 
 // ---- request dispatch ----------------------------------------------------
 
@@ -175,26 +213,18 @@ switch ($action) {
         $cols = $IN['columns'] ?? null;
         if (!is_array($cols) || !$cols) fail(400, 'At least one column required.');
 
+        $conn = pdo($db);
         $defs = []; $pks = [];
         foreach ($cols as $c) {
             if (!is_array($c)) continue;
-            $cn   = assertIdent((string)($c['name'] ?? ''), 'column');
-            $type = trim((string)($c['type'] ?? ''));
-            // type may include length/enum list, e.g. VARCHAR(255), DECIMAL(10,2)
-            if (!preg_match('/^[A-Za-z0-9_ ,()\']{1,128}$/', $type)) {
-                fail(400, "Invalid column type: $type");
-            }
-            $def = qid($cn) . ' ' . $type . (!empty($c['nullable']) ? ' NULL' : ' NOT NULL');
-            if (!empty($c['auto_increment'])) $def .= ' AUTO_INCREMENT';
-            $defs[] = $def;
-            if (!empty($c['pk'])) $pks[] = qid($cn);
+            $defs[] = colClause($conn, $c);   // name/type/nullable/AI/default
+            if (!empty($c['pk'])) $pks[] = qid(assertIdent((string)($c['name'] ?? ''), 'column'));
         }
         if (!$defs) fail(400, 'At least one valid column required.');
         if ($pks)  $defs[] = 'PRIMARY KEY (' . implode(', ', $pks) . ')';
 
         $sql = 'CREATE TABLE ' . qid($name) . ' (' . implode(', ', $defs)
              . ') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4';
-        $conn = pdo($db);
         try { $conn->exec($sql); }
         catch (PDOException $e) { fail(400, $e->getMessage()); }
         ok(['ok' => true, 'db' => $db, 'name' => $name]);
@@ -214,6 +244,45 @@ switch ($action) {
         try { pdo($db)->exec('DROP TABLE ' . qid($table)); }
         catch (PDOException $e) { fail(400, $e->getMessage()); }
         ok(['ok' => true, 'dropped' => $table]);
+    }
+
+    case 'alter_table': {
+        $base  = pdo();
+        $db    = assertDb($base, (string)($IN['db'] ?? ''));
+        $table = assertTable($base, $db, (string)($IN['table'] ?? ''));
+        $names = array_column(columnsOf($base, $db, $table), 'name');
+
+        $ops = $IN['ops'] ?? null;   // [{op:'change'|'add'|'drop', ...}]
+        if (!is_array($ops) || !$ops) fail(400, 'No changes to apply.');
+
+        $conn = pdo($db);
+        $clauses = [];
+        foreach ($ops as $op) {
+            if (!is_array($op)) continue;
+            switch ((string)($op['op'] ?? '')) {
+                case 'drop': {
+                    $n = (string)($op['name'] ?? '');
+                    if (!in_array($n, $names, true)) fail(400, "Unknown column: $n");
+                    $clauses[] = 'DROP COLUMN ' . qid($n);
+                    break;
+                }
+                case 'add':
+                    $clauses[] = 'ADD COLUMN ' . colClause($conn, $op);
+                    break;
+                case 'change': {
+                    $orig = (string)($op['orig'] ?? '');
+                    if (!in_array($orig, $names, true)) fail(400, "Unknown column: $orig");
+                    $clauses[] = 'CHANGE COLUMN ' . qid($orig) . ' ' . colClause($conn, $op);
+                    break;
+                }
+                default:
+                    fail(400, 'Bad alter op.');
+            }
+        }
+        if (!$clauses) fail(400, 'No changes to apply.');
+        try { $conn->exec('ALTER TABLE ' . qid($table) . ' ' . implode(', ', $clauses)); }
+        catch (PDOException $e) { fail(400, $e->getMessage()); }
+        ok(['ok' => true, 'altered' => $table]);
     }
 
     case 'tables': {
@@ -370,6 +439,19 @@ switch ($action) {
         // keep only real columns
         $data = [];
         foreach ($values as $k => $v) if (isset($colMap[$k])) $data[$k] = $v;
+
+        // "format" columns: hash the value before it touches the DB (md5/sha1/sha256).
+        // Client sends transforms only for fields it actually wants hashed (new rows,
+        // or edited fields) so existing hashes aren't re-hashed on an untouched edit.
+        $transforms = $IN['transforms'] ?? [];
+        if (is_array($transforms)) {
+            foreach ($transforms as $k => $algo) {
+                if (isset($data[$k]) && $data[$k] !== null && $data[$k] !== ''
+                    && in_array($algo, HASH_ALGOS, true)) {
+                    $data[$k] = hashVal($algo, (string)$data[$k]);
+                }
+            }
+        }
 
         $pk   = $IN['pk'] ?? null; // present => UPDATE, absent => INSERT
         $conn = pdo($db);

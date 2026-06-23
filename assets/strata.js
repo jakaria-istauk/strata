@@ -169,6 +169,7 @@ async function loadRows() {
   state.fks = data.fks || {};
   state.pkCols = data.columns.filter(c => c.key === 'PRI').map(c => c.name);
   state.hiddenCols = loadHidden();
+  state.formats = loadFormats();
   state.selected = new Map(); // rowKey -> pk object
   updateBulkBar();
   const visible = data.columns.filter(c => !state.hiddenCols.has(c.name));
@@ -378,6 +379,14 @@ $('newDbForm').onsubmit = async (e) => {
 const COL_TYPES = ['INT', 'BIGINT', 'TINYINT', 'DECIMAL(10,2)', 'VARCHAR(255)', 'TEXT', 'LONGTEXT',
   'DATE', 'DATETIME', 'TIMESTAMP', 'BOOLEAN', 'JSON', 'CHAR(36)', 'FLOAT', 'DOUBLE'];
 
+function ensureColTypeList() {
+  if ($('colTypeList')) return;
+  const dl = document.createElement('datalist');
+  dl.id = 'colTypeList';
+  dl.innerHTML = COL_TYPES.map(t => `<option value="${t}"></option>`).join('');
+  document.body.appendChild(dl);
+}
+
 function addColRow(preset) {
   const p = preset || {};
   const row = document.createElement('div');
@@ -398,12 +407,7 @@ $('btnNewTable').onclick = () => {
   $('newTableForm').reset();
   bannerMsg('newTableMsg', '');
   $('newTableDb').textContent = `· ${state.db}`;
-  if (!$('colTypeList')) {
-    const dl = document.createElement('datalist');
-    dl.id = 'colTypeList';
-    dl.innerHTML = COL_TYPES.map(t => `<option value="${t}"></option>`).join('');
-    document.body.appendChild(dl);
-  }
+  ensureColTypeList();
   $('colRows').innerHTML = '';
   addColRow({ name: 'id', type: 'INT', pk: true, ai: true }); // sensible default PK
   addColRow({ name: '', type: 'VARCHAR(255)' });
@@ -433,6 +437,111 @@ $('newTableForm').onsubmit = async (e) => {
     flash(`Table "${name}" created`);
   } catch (err) { bannerMsg('newTableMsg', err.message, 'error'); }
 };
+
+// ---- edit structure (ALTER TABLE + column formats) -----------------------
+const STRUCT_INPUT = 'bg-surface-container-lowest border border-outline-variant rounded-lg px-sm py-xs text-sm text-on-surface focus:ring-primary focus:border-primary';
+
+function structRow(col) {
+  const c = col || {};
+  const existing = !!col;
+  const pk = c.key === 'PRI';
+  const ai = String(c.extra || '').includes('auto_increment');
+  const nullable = c.nullable === 'YES';
+  const type = c.coltype || c.type || '';
+  const def = c.default == null ? '' : String(c.default);
+  const fmt = (state.formats || {})[c.name] || '';
+  const opt = (v, label) => `<option value="${v}"${fmt === v ? ' selected' : ''}>${label}</option>`;
+
+  const row = document.createElement('div');
+  row.className = 'structRow grid grid-cols-[16px_1fr_1fr_40px_40px_120px_32px] gap-sm items-center';
+  row.dataset.orig = existing ? c.name : '';   // '' => a newly added column
+  row.dataset.oType = type;
+  row.dataset.oNull = nullable ? '1' : '0';
+  row.dataset.oAi = ai ? '1' : '0';
+  row.dataset.oDef = def;
+  row.dataset.drop = '0';
+  row.innerHTML = `
+    <span class="flex justify-center">${pk ? '<span class="material-symbols-outlined text-[14px] text-tertiary" title="Primary key">key</span>' : ''}</span>
+    <input class="sName ${STRUCT_INPUT}" placeholder="column" value="${esc(c.name || '')}"/>
+    <input class="sType ${STRUCT_INPUT}" list="colTypeList" placeholder="VARCHAR(255)" value="${esc(type)}"/>
+    <input class="sNull justify-self-center rounded border-outline-variant text-primary focus:ring-primary" type="checkbox" ${nullable ? 'checked' : ''} title="Allow NULL"/>
+    <input class="sAi justify-self-center rounded border-outline-variant text-primary focus:ring-primary" type="checkbox" ${ai ? 'checked' : ''} title="AUTO_INCREMENT"/>
+    <select class="sFmt ${STRUCT_INPUT}">${opt('', '— none —')}${opt('md5', 'MD5')}${opt('sha1', 'SHA-1')}${opt('sha256', 'SHA-256')}</select>
+    <button type="button" class="sDel flex items-center justify-center w-7 h-7 rounded-lg hover:bg-error/15 text-on-surface-variant hover:text-error" title="${existing ? 'Drop column' : 'Remove'}"><span class="material-symbols-outlined text-[18px]">${existing ? 'delete' : 'close'}</span></button>`;
+
+  const del = row.querySelector('.sDel');
+  del.onclick = () => {
+    if (!existing) { row.remove(); return; }
+    const dropping = row.dataset.drop === '0';
+    row.dataset.drop = dropping ? '1' : '0';
+    row.classList.toggle('opacity-40', dropping);
+    row.querySelectorAll('.sName,.sType,.sNull,.sAi,.sFmt').forEach(el => {
+      el.disabled = dropping;
+      if (el.classList.contains('sName')) el.classList.toggle('line-through', dropping);
+    });
+    del.querySelector('span').textContent = dropping ? 'undo' : 'delete';
+    del.title = dropping ? 'Keep column' : 'Drop column';
+  };
+  return row;
+}
+
+function openStruct() {
+  if (!state.table || !state.columns) { flash('Open a table first'); return; }
+  ensureColTypeList();
+  state.formats = loadFormats();
+  $('structTable').textContent = `· ${state.db}.${state.table}`;
+  bannerMsg('structMsg', '');
+  const wrap = $('structRows');
+  wrap.innerHTML = '';
+  state.columns.forEach(c => wrap.appendChild(structRow(c)));
+  $('structModal').classList.remove('hidden');
+}
+function closeStruct() { $('structModal').classList.add('hidden'); }
+
+async function saveStruct() {
+  const rows = [...$('structRows').querySelectorAll('.structRow')];
+  const ops = [];
+  const formats = {};
+  for (const r of rows) {
+    const name = r.querySelector('.sName').value.trim();
+    const type = r.querySelector('.sType').value.trim();
+    const nullable = r.querySelector('.sNull').checked;
+    const ai = r.querySelector('.sAi').checked;
+    const fmt = r.querySelector('.sFmt').value;
+    const orig = r.dataset.orig;
+
+    if (orig && r.dataset.drop === '1') { ops.push({ op: 'drop', name: orig }); continue; }
+    if (!name || !type) { bannerMsg('structMsg', 'Every column needs a name and a type.', 'error'); return; }
+    if (fmt) formats[name] = fmt;   // format is a Strata-only property → localStorage, not SQL
+
+    if (!orig) {
+      ops.push({ op: 'add', name, type, nullable, auto_increment: ai });
+    } else {
+      const changed = name !== orig || type !== r.dataset.oType
+        || (nullable ? '1' : '0') !== r.dataset.oNull || (ai ? '1' : '0') !== r.dataset.oAi;
+      if (changed) {
+        // preserve the existing DEFAULT (we don't expose it for editing here)
+        ops.push({ op: 'change', orig, name, type, nullable, auto_increment: ai, default: r.dataset.oDef });
+      }
+    }
+  }
+
+  try {
+    if (ops.length) await api('alter_table', { db: state.db, table: state.table, ops });
+    saveFormats(formats);
+    state.formats = formats;
+    closeStruct();
+    await loadRows();   // refresh columns + grid
+    flash(ops.length ? 'Structure updated' : 'Formats saved');
+  } catch (e) { bannerMsg('structMsg', e.message, 'error'); }
+}
+
+$('btnStructure').onclick = openStruct;
+$('structClose').onclick = closeStruct;
+$('structCancel').onclick = closeStruct;
+$('structModal').addEventListener('click', (e) => { if (e.target.id === 'structModal') closeStruct(); });
+$('btnAddStructCol').onclick = () => $('structRows').appendChild(structRow(null));
+$('structForm').onsubmit = (e) => { e.preventDefault(); saveStruct(); };
 
 $('tableFilter').oninput = renderTableList;
 $('perPage').onchange = (e) => { state.perPage = +e.target.value; state.page = 1; loadRows(); };
@@ -502,13 +611,17 @@ function renderDrawer() {
       ? `<textarea ${common} rows="3" placeholder="${auto ? '(auto)' : ''}">${isNull ? '' : esc(val)}</textarea>`
       : `<input ${common} type="${inputType}" value="${isNull ? '' : esc(val)}" placeholder="${auto ? '(auto)' : ''}"/>`;
     const keyIcon = pk ? '<span class="material-symbols-outlined text-[13px] text-tertiary">key</span>' : '';
+    const fmt = (state.formats || {})[c.name];
+    const fmtBadge = fmt
+      ? `<span class="text-[10px] px-sm py-[1px] rounded-full bg-tertiary/15 text-tertiary font-mono" title="Value is hashed with ${fmt.toUpperCase()} on save">→ ${esc(fmt.toUpperCase())}</span>`
+      : '';
     const nullBtn = (c.nullable === 'YES' && editable && !auto)
       ? `<button type="button" data-null="${esc(c.name)}" class="nullToggle text-[10px] px-sm py-[2px] rounded border ${isNull ? 'border-primary text-primary' : 'border-outline-variant text-on-surface-variant'}">NULL</button>`
       : '';
     return `<div class="field" data-field="${esc(c.name)}" data-isnull="${isNull ? '1' : '0'}">
       <div class="flex items-center justify-between mb-xs">
         <label class="flex items-center gap-xs text-xs uppercase tracking-wider text-on-surface-variant opacity-80">${keyIcon}${esc(c.name)}
-          <span class="opacity-50 lowercase font-mono">${esc(c.type)}</span></label>
+          <span class="opacity-50 lowercase font-mono">${esc(c.type)}</span>${fmtBadge}</label>
         ${nullBtn}
       </div>${ctrl}</div>`;
   }).join('');
@@ -533,6 +646,7 @@ function renderDrawer() {
   $('drawerBody').querySelectorAll('.drawerInput').forEach(input => {
     input.oninput = () => {
       const field = input.closest('.field');
+      field.dataset.dirty = '1';   // marks the field as user-edited (drives format hashing)
       if (field.dataset.isnull === '1') {
         field.dataset.isnull = '0';
         const btn = field.querySelector('.nullToggle');
@@ -551,19 +665,29 @@ function renderDrawer() {
 
 function collectDrawerValues() {
   const out = {};
+  const transforms = {};
+  const formats = state.formats || {};
+  const mode = state.drawer.mode;
   $('drawerBody').querySelectorAll('.field').forEach(field => {
     const col = field.dataset.field;
     const input = field.querySelector('.drawerInput');
     if (input.disabled && field.dataset.isnull !== '1') return; // locked (auto/pk) → skip
-    out[col] = field.dataset.isnull === '1' ? null : input.value;
+    const isNull = field.dataset.isnull === '1';
+    out[col] = isNull ? null : input.value;
+    // Hash only fields the user actually set: all values on a new row, or edited
+    // fields on an update — so an existing hash isn't re-hashed when left untouched.
+    if (!isNull && formats[col] && input.value !== '' && (mode === 'new' || field.dataset.dirty === '1')) {
+      transforms[col] = formats[col];
+    }
   });
-  return out;
+  return { values: out, transforms };
 }
 
 async function saveDrawer() {
   const { mode, row } = state.drawer;
-  const values = collectDrawerValues();
+  const { values, transforms } = collectDrawerValues();
   const params = { db: state.db, table: state.table, values };
+  if (Object.keys(transforms).length) params.transforms = transforms;
   if (mode === 'edit') params.pk = rowPk(row);
   try {
     const res = await api('row_save', params);
@@ -969,6 +1093,16 @@ function hiddenKey() { return `strata-hidden:${state.db}.${state.table}`; }
 function loadHidden() { try { return new Set(JSON.parse(localStorage.getItem(hiddenKey())) || []); } catch { return new Set(); } }
 function saveHidden(s) { localStorage.setItem(hiddenKey(), JSON.stringify([...s])); }
 
+// Column "formats" (md5/sha1/sha256) — a Strata-only per-column property kept in
+// localStorage (MySQL has no such type). On row save the chosen algorithm is sent
+// to the API, which hashes the value. Keyed by db.table → { column: algo }.
+function fmtKey() { return `strata-formats:${state.db}.${state.table}`; }
+function loadFormats() { try { return JSON.parse(localStorage.getItem(fmtKey())) || {}; } catch { return {}; } }
+function saveFormats(o) {
+  if (Object.keys(o).length) localStorage.setItem(fmtKey(), JSON.stringify(o));
+  else localStorage.removeItem(fmtKey());
+}
+
 function jumpToFk(table, val) {
   if (!state.tables.find(t => t.name === table)) { flash(`Referenced table "${table}" not in this database`); return; }
   state.table = table; state.page = 1; state.sort = ''; state.dir = 'ASC';
@@ -1021,6 +1155,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     closeRowDrawer();
     if (activeConn()) $('connModal').classList.add('hidden');
+    $('structModal').classList.add('hidden');
     $('colMenu').classList.add('hidden');
     $('historyPanel').classList.add('hidden');
     return;

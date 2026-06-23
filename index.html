@@ -143,6 +143,9 @@
           <button id="btnExport" class="flex items-center gap-sm px-sm py-sm rounded border border-outline-variant hover:bg-surface-container-high transition-colors text-[13px]">
             <span class="material-symbols-outlined text-[18px]">download</span> Export CSV
           </button>
+          <button id="btnStructure" class="flex items-center gap-sm px-sm py-sm rounded border border-outline-variant hover:bg-surface-container-high transition-colors text-[13px]">
+            <span class="material-symbols-outlined text-[18px]">account_tree</span> Structure
+          </button>
           <div class="relative">
             <button id="btnColumns" class="flex items-center gap-sm px-sm py-sm rounded border border-outline-variant hover:bg-surface-container-high transition-colors text-[13px]">
               <span class="material-symbols-outlined text-[18px]">view_column</span> Columns
@@ -406,6 +409,36 @@
     <div class="flex items-center justify-end gap-sm px-lg py-md border-t border-outline-variant">
       <button type="button" id="newTableCancel" class="px-md py-sm rounded-lg hover:bg-surface-container-high text-on-surface-variant">Cancel</button>
       <button type="submit" class="px-md py-sm rounded-lg bg-primary text-on-primary font-semibold hover:opacity-90 transition-opacity">Create table</button>
+    </div>
+  </form>
+</div>
+
+<!-- Edit structure modal -->
+<div id="structModal" class="hidden fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-md">
+  <form id="structForm" class="bg-surface-container border border-outline-variant rounded-xl w-full max-w-[920px] max-h-[88vh] flex flex-col shadow-2xl">
+    <div class="flex items-center justify-between px-lg py-md border-b border-outline-variant">
+      <h2 class="font-display text-lg font-bold text-on-surface">Edit structure <span id="structTable" class="text-on-surface-variant opacity-60 text-sm font-normal"></span></h2>
+      <button type="button" id="structClose" class="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-surface-container-high text-on-surface-variant"><span class="material-symbols-outlined text-[20px]">close</span></button>
+    </div>
+    <div class="flex-1 overflow-auto scroll p-lg space-y-md">
+      <div>
+        <div class="grid grid-cols-[16px_1fr_1fr_40px_40px_120px_32px] gap-sm text-[10px] uppercase tracking-wider text-on-surface-variant opacity-40 mb-xs px-xs">
+          <span></span><span>Name</span><span>Type</span>
+          <span class="text-center cursor-help underline decoration-dotted" title="Allow NULL — unchecked = NOT NULL (value required).">Null</span>
+          <span class="text-center cursor-help underline decoration-dotted" title="AUTO_INCREMENT — database fills with the next number on insert.">AI</span>
+          <span class="cursor-help underline decoration-dotted" title="Format — hash the value (MD5 / SHA-1 / SHA-256) whenever a row is added or this field is edited. Stored per-table in this browser.">Format</span>
+          <span></span>
+        </div>
+        <div id="structRows" class="space-y-sm"></div>
+        <button type="button" id="btnAddStructCol" class="mt-sm flex items-center gap-sm px-md py-sm rounded-lg border border-dashed border-outline-variant hover:bg-surface-container-high transition-colors text-on-surface-variant w-full justify-center">
+          <span class="material-symbols-outlined text-[18px]">add</span> Add column
+        </button>
+      </div>
+      <div id="structMsg" class="hidden text-sm rounded-lg px-sm py-sm"></div>
+    </div>
+    <div class="flex items-center justify-end gap-sm px-lg py-md border-t border-outline-variant">
+      <button type="button" id="structCancel" class="px-md py-sm rounded-lg hover:bg-surface-container-high text-on-surface-variant">Cancel</button>
+      <button type="submit" class="px-md py-sm rounded-lg bg-primary text-on-primary font-semibold hover:opacity-90 transition-opacity">Save changes</button>
     </div>
   </form>
 </div>

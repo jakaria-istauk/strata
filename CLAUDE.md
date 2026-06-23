@@ -52,12 +52,13 @@ Herd MySQL on `127.0.0.1:3306`, user `root`, no password. `wp` DB has real table
 | `create_table` | `db,name,columns[{name,type,nullable,auto_increment,pk}]` | `{ok,db,name}` (InnoDB / utf8mb4) |
 | `drop_database` | `db` | `{ok,dropped}` |
 | `drop_table` | `db,table` | `{ok,dropped}` |
+| `alter_table` | `db,table,ops[{op:'change'\|'add'\|'drop',orig?,name,type,nullable,auto_increment,default?}]` | `{ok,altered}` (CHANGE/ADD/DROP COLUMN; `change` preserves the existing DEFAULT) |
 | `tables` | `db` | `{tables:[{name,rows,type,engine,size}]}` |
-| `columns` | `db,table` | `{columns:[{name,type,key,nullable,default,extra}]}` |
+| `columns` | `db,table` | `{columns:[{name,type,coltype,key,nullable,default,extra}]}` (`coltype` = full e.g. `varchar(255)`) |
 | `rows` | `db,table,page,per_page,sort,dir,search` | `{columns,rows,total,page,pages,…}` |
 | `test_connection` | (creds only) | `{ok,version,host}` |
 | `row_get` | `db,table,pk{}` | `{columns,row}` |
-| `row_save` | `db,table,values{}[,pk{}]` | `{ok,mode,affected\|insertId}` (pk present ⇒ update, absent ⇒ insert) |
+| `row_save` | `db,table,values{}[,pk{}][,transforms{col:'md5'\|'sha1'\|'sha256'}]` | `{ok,mode,affected\|insertId}` (pk present ⇒ update, absent ⇒ insert; `transforms` hashes the value server-side) |
 | `row_delete` | `db,table,pks[{}]` | `{ok,deleted}` (transactional) |
 | `export_csv` | `db,table,search,sort,dir` | streamed `text/csv` (all matching rows) |
 | `stats` | `db` | `{version,uptime,dbCount,tableCount,dbSize,threads*,questions,slowQueries,bytes*,breakdown}` |
@@ -85,4 +86,4 @@ All planned API actions implemented.
 
 ## Status
 
-Phase 0 (Explorer) ✅. Phase 1 (Strata rebrand + theming) ✅. Phase 2 (Connection Settings — localStorage profiles, stateless creds) ✅. Phase 3 (Row CRUD) ✅. Phase 4 (SQL Editor) ✅. Phase 5 (Dashboard) ✅. Phase 6 (Polish — FK links, column show/hide, full CSV export, shortcuts) ✅ (Tailwind CLI build deferred). Phase 7 (Schema ops) 🚧 — create + drop database/table done; alter pending.
+Phase 0 (Explorer) ✅. Phase 1 (Strata rebrand + theming) ✅. Phase 2 (Connection Settings — localStorage profiles, stateless creds) ✅. Phase 3 (Row CRUD) ✅. Phase 4 (SQL Editor) ✅. Phase 5 (Dashboard) ✅. Phase 6 (Polish — FK links, column show/hide, full CSV export, shortcuts) ✅ (Tailwind CLI build deferred). Phase 7 (Schema ops) ✅ — create + drop database/table; alter table (Edit structure modal: rename/retype/null/AI, add & drop columns; CHANGE preserves DEFAULT). Per-column **formats** (md5/sha1/sha256) — a Strata-only property kept in localStorage (`strata-formats:<db>.<table>`); on row save the client sends `transforms` for new rows or edited fields and `api.php` hashes the value. Untouched hashed fields aren't re-hashed on edit.
