@@ -45,9 +45,9 @@ export default {
       },
       borderRadius: { DEFAULT: '0.25rem', lg: '0.5rem', xl: '0.75rem', full: '9999px' },
       fontFamily: {
-        display: ['Geist Sans', 'sans-serif'],
-        body: ['Inter', 'sans-serif'],
-        mono: ['JetBrains Mono', 'monospace'],
+        display: ['Geist Variable', 'sans-serif'],
+        body: ['Inter Variable', 'sans-serif'],
+        mono: ['JetBrains Mono Variable', 'monospace'],
       },
     },
   },

@@ -6,10 +6,15 @@
 *.bak
 *.original.*
 
-# Dependencies / build (future Tailwind CLI)
+# Dependencies / build
 node_modules/
 dist/
 app/assets/*.min.css
+
+# TypeScript project-references build artifacts (tsc -b)
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
 
 # Local
 *.log
