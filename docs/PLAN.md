@@ -77,10 +77,11 @@ api.php  (PHP + PDO, stateless — unchanged)
 - [x] Grid (sortable headers, PK icon, NULL/empty styling) + Pagination + Toolbar (search). Hooks: `useDatabases`, `useTables`, `useRows` (keepPreviousData).
 - **Verified (Chrome):** db switch → tables; open table → grid; sort toggles ASC/DESC (resets page); paginate; search filters (1,231→173) — all reflected in URL; deep-link loads; console clean.
 
-## Phase 4 — Row CRUD 🚧 NEXT
-- [ ] RowDrawer (view / edit / new), NULL toggle.
-- [ ] Per-column formats → `transforms` on save (`lib/formats.ts`).
-- [ ] Bulk delete; ConfirmDanger (type-to-confirm); Toast.
+## Phase 4 — Row CRUD ✅ DONE
+- [x] RowDrawer (edit / new) with per-field NULL toggle.
+- [x] Per-column formats → `transforms` on save (`lib/formats.ts`); transforms sent only for new/edited fields so untouched hashes aren't re-hashed.
+- [x] Bulk delete (row checkboxes); ConfirmDanger (type-to-confirm); Toast (`components/Toast.tsx`).
+- **Verified (Chrome):** insert (md5 hash applied server-side), edit name (secret hash NOT re-hashed), select + type-to-confirm delete; toasts + cache invalidation refresh the grid; console clean.
 
 ## Phase 5 — Grid polish
 - [x] Column show/hide (`ColumnToggle`, in-memory per view) — landed early in Phase 3.

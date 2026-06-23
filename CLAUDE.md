@@ -96,7 +96,8 @@ React SPA rebuild (branch `react`). The API (`api.php`) and all its actions abov
 - **Phase 1 (Scaffold) ✅** — Vite+TS+Tailwind, token theming, lucide, self-hosted fonts, Query client, dev proxy; builds to `dist/`, `strata.test` linked, `make zip` round-trip verified.
 - **Phase 2 (Data layer) ✅** — `api.ts` (typed POST wrapper + `ApiError`), `types.ts`, `lib/profiles.ts` (localStorage profiles, runtime-only passwords, `activeConn()`), `components/ConnModal.tsx` (profile CRUD + `test_connection`); app gated on active connection w/ password re-prompt. Chrome-verified against live MySQL.
 - **Phase 3 (Explorer core) ✅** — `components/Sidebar.tsx` (DbSelect + filterable TableList), `components/Grid.tsx` (sortable headers, PK icon, NULL styling), `components/Pagination.tsx`, `routes/TableView.tsx` (URL-backed page/sort/dir/search) + `routes/Welcome.tsx`; hooks `useDatabases`/`useTables`/`useRows`. BrowserRouter in `main.tsx`; deep-links rely on Herd's SPA fallback. Chrome-verified.
-- **Phase 4 (Row CRUD) 🚧 NEXT** — RowDrawer (view/edit/new + NULL toggle), per-column formats → `transforms`, bulk delete, ConfirmDanger, Toast.
-- Phases 5–8: Grid polish · SQL editor + Dashboard · Schema ops · Cutover.
+- **Phase 4 (Row CRUD) ✅** — `RowDrawer` (new/edit + per-field NULL toggle), `lib/formats.ts` per-column hash formats → `transforms` (only new/edited fields), bulk delete via row checkboxes, `ConfirmDanger` (type-to-confirm), `Toast` (provider in `main.tsx`). Chrome-verified.
+- **Phase 5 (Grid polish) 🚧 NEXT** — foreign-key links; full-table CSV export; keyboard shortcuts. (Column show/hide already done.)
+- Phases 6–8: SQL editor + Dashboard · Schema ops · Cutover.
 
 Per-column **formats** (md5/sha1/sha256) are a Strata-only property kept in localStorage (`strata-formats:<db>.<table>`); on row save the client sends `transforms` for new/edited fields and `api.php` hashes server-side. Untouched hashed fields aren't re-hashed on edit. (Lands in the React build at Phase 4/7.)

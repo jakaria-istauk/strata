@@ -1,5 +1,5 @@
-// Data grid — renders a page of rows with sortable headers. Presentational:
-// sort state + handler are passed down from TableView (URL-backed).
+// Data grid — sortable headers, optional row selection + click-to-edit.
+// Presentational: sort/selection state + handlers come from TableView.
 
 import { ArrowDown, ArrowUp, KeyRound } from 'lucide-react';
 import type { Column, Row } from '../types';
@@ -10,14 +10,46 @@ interface Props {
   sort: string;
   dir: 'ASC' | 'DESC';
   onSort: (col: string) => void;
+  /** Row selection — enabled only when the table has a primary key. */
+  hasPk: boolean;
+  keyOf: (row: Row) => string | null;
+  selectedKeys: Set<string>;
+  onToggleRow: (row: Row) => void;
+  onToggleAll: () => void;
+  allChecked: boolean;
+  onRowOpen: (row: Row) => void;
 }
 
-export default function Grid({ columns, rows, sort, dir, onSort }: Props) {
+export default function Grid({
+  columns,
+  rows,
+  sort,
+  dir,
+  onSort,
+  hasPk,
+  keyOf,
+  selectedKeys,
+  onToggleRow,
+  onToggleAll,
+  allChecked,
+  onRowOpen,
+}: Props) {
   return (
     <div className="h-full overflow-auto rounded-lg border border-outline-variant">
       <table className="w-full border-collapse text-sm">
         <thead className="sticky top-0 z-10 bg-surface-container">
           <tr>
+            {hasPk && (
+              <th className="w-10 border-b border-outline-variant px-md py-sm text-left">
+                <input
+                  type="checkbox"
+                  checked={allChecked}
+                  onChange={onToggleAll}
+                  className="accent-primary"
+                  aria-label="Select all rows"
+                />
+              </th>
+            )}
             {columns.map((c) => {
               const isSorted = c.name === sort;
               return (
@@ -53,28 +85,52 @@ export default function Grid({ columns, rows, sort, dir, onSort }: Props) {
           </tr>
         </thead>
         <tbody>
-          {rows.map((row, i) => (
-            <tr key={i} className="even:bg-surface-container-low hover:bg-surface-container-high">
-              {columns.map((c) => {
-                const v = row[c.name];
-                return (
+          {rows.map((row, i) => {
+            const rk = keyOf(row);
+            const selected = rk !== null && selectedKeys.has(rk);
+            return (
+              <tr
+                key={rk ?? i}
+                onClick={() => hasPk && onRowOpen(row)}
+                className={`${hasPk ? 'cursor-pointer' : ''} ${
+                  selected ? 'bg-secondary-container/40' : 'even:bg-surface-container-low'
+                } hover:bg-surface-container-high`}
+              >
+                {hasPk && (
                   <td
-                    key={c.name}
-                    className="max-w-xs truncate whitespace-nowrap border-b border-outline-variant px-md py-sm font-mono text-xs text-on-surface"
-                    title={v ?? 'NULL'}
+                    className="border-b border-outline-variant px-md py-sm"
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    {v === null ? (
-                      <span className="italic text-on-surface-variant/60">NULL</span>
-                    ) : v === '' ? (
-                      <span className="italic text-on-surface-variant/40">empty</span>
-                    ) : (
-                      v
-                    )}
+                    <input
+                      type="checkbox"
+                      checked={selected}
+                      onChange={() => onToggleRow(row)}
+                      className="accent-primary"
+                      aria-label="Select row"
+                    />
                   </td>
-                );
-              })}
-            </tr>
-          ))}
+                )}
+                {columns.map((c) => {
+                  const v = row[c.name];
+                  return (
+                    <td
+                      key={c.name}
+                      className="max-w-xs truncate whitespace-nowrap border-b border-outline-variant px-md py-sm font-mono text-xs text-on-surface"
+                      title={v ?? 'NULL'}
+                    >
+                      {v === null ? (
+                        <span className="italic text-on-surface-variant/60">NULL</span>
+                      ) : v === '' ? (
+                        <span className="italic text-on-surface-variant/40">empty</span>
+                      ) : (
+                        v
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

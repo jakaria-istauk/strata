@@ -34,6 +34,22 @@ export interface Column {
 
 export type Row = Record<string, string | null>;
 
+/** A primary-key locator: column name → value (identifies one row). */
+export type Pk = Record<string, string | null>;
+
+/** Per-column server-side hash formats (Strata feature, localStorage). */
+export type HashAlgo = 'md5' | 'sha1' | 'sha256';
+export type Formats = Record<string, HashAlgo>;
+
+export interface RowGetResult {
+  columns: Column[];
+  row: Row;
+}
+
+export type RowSaveResult =
+  | { ok: true; mode: 'update'; affected: number }
+  | { ok: true; mode: 'insert'; insertId: string };
+
 export interface TableInfo {
   name: string;
   rows: number;
