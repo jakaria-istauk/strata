@@ -1,12 +1,14 @@
 // Table view — URL-backed grid for /db/:db/table/:table.
 // page / sort / dir / search live in the query string (shareable, back-button).
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { Search, Loader2, X } from 'lucide-react';
 import { useRows } from '../hooks/useRows';
 import Grid from '../components/Grid';
 import Pagination from '../components/Pagination';
+import ColumnToggle from '../components/ColumnToggle';
+import { getHidden, setHidden } from '../lib/columnPrefs';
 
 const PER_PAGE = 50;
 
@@ -22,6 +24,17 @@ export default function TableView() {
   // Local search field, synced to URL on submit (avoids a request per keystroke).
   const [searchInput, setSearchInput] = useState(search);
   useEffect(() => setSearchInput(search), [search]);
+
+  // Hidden columns (localStorage, per db.table). Reload when the table changes.
+  const [hidden, setHiddenState] = useState<string[]>([]);
+  useEffect(() => {
+    setHiddenState(db && table ? getHidden(db, table) : []);
+  }, [db, table]);
+
+  function changeHidden(next: string[]) {
+    setHiddenState(next);
+    if (db && table) setHidden(db, table, next);
+  }
 
   const { data, isFetching, error } = useRows(db, table, {
     page,
@@ -45,10 +58,16 @@ export default function TableView() {
     else patch({ sort: col, dir: 'ASC', page: null });
   }
 
+  const hiddenSet = useMemo(() => new Set(hidden), [hidden]);
+  const visibleColumns = useMemo(
+    () => (data?.columns ?? []).filter((c) => !hiddenSet.has(c.name)),
+    [data?.columns, hiddenSet],
+  );
+
   return (
     <div className="flex h-full flex-col gap-md p-md">
       {/* Toolbar */}
-      <div className="flex items-center gap-md">
+      <div className="flex shrink-0 items-center gap-md">
         <h1 className="font-display text-base font-semibold text-on-surface">{table}</h1>
         {isFetching && <Loader2 size={14} className="animate-spin text-on-surface-variant" />}
         <form
@@ -84,6 +103,9 @@ export default function TableView() {
             )}
           </div>
         </form>
+        {data && data.columns.length > 0 && (
+          <ColumnToggle columns={data.columns} hidden={hidden} onChange={changeHidden} />
+        )}
       </div>
 
       {error ? (
@@ -99,24 +121,26 @@ export default function TableView() {
           {search ? `No rows match “${search}”.` : 'This table is empty.'}
         </div>
       ) : (
-        <div className="flex min-h-0 flex-1 flex-col">
+        <>
           <div className="min-h-0 flex-1">
             <Grid
-              columns={data.columns}
+              columns={visibleColumns}
               rows={data.rows}
               sort={sort}
               dir={dir}
               onSort={onSort}
             />
           </div>
-          <Pagination
-            page={data.page}
-            pages={data.pages}
-            total={data.total}
-            perPage={data.per_page}
-            onPage={(p) => patch({ page: p > 1 ? String(p) : null })}
-          />
-        </div>
+          <div className="shrink-0">
+            <Pagination
+              page={data.page}
+              pages={data.pages}
+              total={data.total}
+              perPage={data.per_page}
+              onPage={(p) => patch({ page: p > 1 ? String(p) : null })}
+            />
+          </div>
+        </>
       )}
     </div>
   );

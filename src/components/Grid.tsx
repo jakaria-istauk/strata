@@ -14,7 +14,7 @@ interface Props {
 
 export default function Grid({ columns, rows, sort, dir, onSort }: Props) {
   return (
-    <div className="overflow-auto rounded-lg border border-outline-variant">
+    <div className="h-full overflow-auto rounded-lg border border-outline-variant">
       <table className="w-full border-collapse text-sm">
         <thead className="sticky top-0 z-10 bg-surface-container">
           <tr>

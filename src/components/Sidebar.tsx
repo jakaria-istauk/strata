@@ -3,9 +3,10 @@
 
 import { useState } from 'react';
 import { useMatch, useNavigate } from 'react-router-dom';
-import { ChevronDown, Table2, Search, Loader2, Database } from 'lucide-react';
+import { Table2, Search, Loader2 } from 'lucide-react';
 import { useDatabases } from '../hooks/useDatabases';
 import { useTables } from '../hooks/useTables';
+import DbSelect from './DbSelect';
 
 export default function Sidebar() {
   const navigate = useNavigate();
@@ -26,31 +27,12 @@ export default function Sidebar() {
     <aside className="flex w-64 shrink-0 flex-col border-r border-outline-variant bg-surface-container-low">
       {/* DB select */}
       <div className="border-b border-outline-variant p-sm">
-        <div className="relative">
-          <Database
-            size={14}
-            className="pointer-events-none absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant"
-          />
-          <select
-            value={db ?? ''}
-            disabled={dbsLoading}
-            onChange={(e) => navigate(`/db/${encodeURIComponent(e.target.value)}`)}
-            className="w-full appearance-none rounded-lg border border-outline-variant bg-surface px-7 py-sm text-sm text-on-surface outline-none focus:border-primary"
-          >
-            <option value="" disabled>
-              {dbsLoading ? 'Loading…' : 'Select database'}
-            </option>
-            {(databases ?? []).map((d) => (
-              <option key={d} value={d}>
-                {d}
-              </option>
-            ))}
-          </select>
-          <ChevronDown
-            size={14}
-            className="pointer-events-none absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant"
-          />
-        </div>
+        <DbSelect
+          databases={databases ?? []}
+          value={db}
+          loading={dbsLoading}
+          onSelect={(d) => navigate(`/db/${encodeURIComponent(d)}`)}
+        />
       </div>
 
       {/* Table filter */}

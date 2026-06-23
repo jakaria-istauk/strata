@@ -83,7 +83,8 @@ api.php  (PHP + PDO, stateless — unchanged)
 - [ ] Bulk delete; ConfirmDanger (type-to-confirm); Toast.
 
 ## Phase 5 — Grid polish
-- [ ] Column show/hide (persisted), foreign-key links.
+- [x] Column show/hide (persisted in `lib/columnPrefs.ts`, `ColumnToggle`) — landed early in Phase 3.
+- [ ] Foreign-key links.
 - [ ] Full-table CSV export (streamed). Keyboard shortcuts. Loading/empty/error states.
 
 ## Phase 6 — SQL editor + Dashboard
