@@ -1,12 +1,13 @@
-// Phase 2 shell — gates the app on an active connection. The real Explorer
-// (Sidebar + Grid) lands in Phase 3; for now a connected screen proves the
-// typed gateway + profiles + ConnModal work end-to-end.
+// App shell — gates on an active connection, then renders the Explorer
+// (Sidebar + routed main). Real db/table browsing lives under /db/:db/...
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Database, Settings, Lock, Loader2, Sun, Moon, Monitor } from 'lucide-react';
+import { Routes, Route } from 'react-router-dom';
+import { Database, Settings, Lock, Sun, Moon, Monitor } from 'lucide-react';
 import ConnModal from './components/ConnModal';
-import { api } from './api';
+import Sidebar from './components/Sidebar';
+import TableView from './routes/TableView';
+import Welcome from './routes/Welcome';
 import { getActiveProfile, needsPassword, setSessionPassword } from './lib/profiles';
 import { setTheme, getTheme, type ThemeMode } from './lib/theme';
 
@@ -23,11 +24,7 @@ export default function App() {
   if (!profile) {
     return (
       <Centered>
-        <ConnModal
-          dismissable={false}
-          onClose={() => setShowConn(false)}
-          onConnected={refresh}
-        />
+        <ConnModal dismissable={false} onClose={() => setShowConn(false)} onConnected={refresh} />
       </Centered>
     );
   }
@@ -58,13 +55,13 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-background text-on-surface" key={tick}>
+    <div className="flex h-screen flex-col bg-background text-on-surface" key={`${profile.id}-${tick}`}>
       <header className="flex items-center justify-between border-b border-outline-variant px-lg py-md">
         <div className="flex items-center gap-sm">
           <Database className="text-primary" size={22} />
           <span className="font-display text-lg font-semibold text-primary">Strata</span>
           <span className="ml-sm rounded-full bg-secondary-container px-sm py-xs text-xs text-on-secondary-container">
-            {profile!.name}
+            {profile.name}
           </span>
         </div>
         <div className="flex items-center gap-sm">
@@ -78,9 +75,17 @@ export default function App() {
         </div>
       </header>
 
-      <main className="flex-1 overflow-auto p-lg">
-        <DatabaseList key={`${profile!.id}-${tick}`} />
-      </main>
+      <div className="flex min-h-0 flex-1">
+        <Sidebar />
+        <main className="min-w-0 flex-1 overflow-hidden">
+          <Routes>
+            <Route index element={<Welcome />} />
+            <Route path="/db/:db" element={<Welcome />} />
+            <Route path="/db/:db/table/:table" element={<TableView />} />
+            <Route path="*" element={<Welcome />} />
+          </Routes>
+        </main>
+      </div>
 
       {showConn && (
         <ConnModal
@@ -92,46 +97,6 @@ export default function App() {
           }}
         />
       )}
-    </div>
-  );
-}
-
-function DatabaseList() {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['databases'],
-    queryFn: () => api<{ databases: string[] }>('databases'),
-  });
-
-  if (isLoading)
-    return (
-      <div className="flex items-center gap-sm text-on-surface-variant">
-        <Loader2 size={16} className="animate-spin" /> Loading databases…
-      </div>
-    );
-
-  if (error)
-    return (
-      <div className="rounded-lg bg-error/10 px-md py-sm text-sm text-error">
-        {(error as Error).message}
-      </div>
-    );
-
-  const dbs = data?.databases ?? [];
-  return (
-    <div>
-      <h2 className="mb-md font-display text-sm font-medium text-on-surface-variant">
-        Databases ({dbs.length})
-      </h2>
-      <ul className="grid grid-cols-2 gap-sm sm:grid-cols-3 lg:grid-cols-4">
-        {dbs.map((db) => (
-          <li
-            key={db}
-            className="flex items-center gap-sm rounded-lg border border-outline-variant bg-surface-container-low px-md py-sm text-sm"
-          >
-            <Database size={14} className="text-primary" /> {db}
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }
@@ -193,8 +158,7 @@ function PasswordPrompt({
 function ThemeToggle() {
   const [mode, setMode] = useState<ThemeMode>(getTheme());
   const cycle = () => {
-    const next: ThemeMode =
-      mode === 'light' ? 'dark' : mode === 'dark' ? 'system' : 'light';
+    const next: ThemeMode = mode === 'light' ? 'dark' : mode === 'dark' ? 'system' : 'light';
     setTheme(next);
     setMode(next);
   };
@@ -213,8 +177,6 @@ function ThemeToggle() {
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-screen items-center justify-center bg-background p-md">
-      {children}
-    </div>
+    <div className="flex h-screen items-center justify-center bg-background p-md">{children}</div>
   );
 }

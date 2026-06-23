@@ -71,12 +71,13 @@ api.php  (PHP + PDO, stateless — unchanged)
 - [x] Gate the app on an active connection; password re-prompt when `remember` is off.
 - **Verified (Chrome):** no-profile gate → ConnModal; Test → "Connected · MySQL 9.2.0"; Save & Connect → live `databases` (13) via TanStack Query; reload re-prompts password (remember off); unlock restores; console clean.
 
-## Phase 3 — Explorer core 🚧 NEXT
-- [ ] Sidebar: DbSelect + TableList + filter.
-- [ ] Routing: `/db/:db/table/:table`; page/sort/search in URL search params.
-- [ ] Grid + Pagination + Toolbar (sort, search). Hooks: `useDatabases`, `useTables`, `useRows`.
+## Phase 3 — Explorer core ✅ DONE
+- [x] Sidebar: DbSelect + filterable TableList (row counts).
+- [x] Routing: `/db/:db`, `/db/:db/table/:table`; page/sort/dir/search in URL search params (BrowserRouter + Herd SPA fallback).
+- [x] Grid (sortable headers, PK icon, NULL/empty styling) + Pagination + Toolbar (search). Hooks: `useDatabases`, `useTables`, `useRows` (keepPreviousData).
+- **Verified (Chrome):** db switch → tables; open table → grid; sort toggles ASC/DESC (resets page); paginate; search filters (1,231→173) — all reflected in URL; deep-link loads; console clean.
 
-## Phase 4 — Row CRUD
+## Phase 4 — Row CRUD 🚧 NEXT
 - [ ] RowDrawer (view / edit / new), NULL toggle.
 - [ ] Per-column formats → `transforms` on save (`lib/formats.ts`).
 - [ ] Bulk delete; ConfirmDanger (type-to-confirm); Toast.

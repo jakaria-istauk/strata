@@ -42,12 +42,27 @@ export interface TableInfo {
   size: number;
 }
 
+/** Foreign-key edge (api.php `fks` on rows) — used for FK links in Phase 5. */
+export interface ForeignKey {
+  column: string;
+  refDb?: string;
+  refTable: string;
+  refColumn: string;
+}
+
 export interface RowsResult {
+  db: string;
+  table: string;
   columns: Column[];
+  fks?: ForeignKey[];
   rows: Row[];
   total: number;
   page: number;
+  per_page: number;
   pages: number;
+  sort: string;
+  dir: 'ASC' | 'DESC';
+  search: string;
 }
 
 export interface Stats {
