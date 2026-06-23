@@ -55,6 +55,7 @@ Herd MySQL on `127.0.0.1:3306`, user `root`, no password. `wp` DB has real table
 | `row_get` | `db,table,pk{}` | `{columns,row}` |
 | `row_save` | `db,table,values{}[,pk{}]` | `{ok,mode,affected\|insertId}` (pk present ⇒ update, absent ⇒ insert) |
 | `row_delete` | `db,table,pks[{}]` | `{ok,deleted}` (transactional) |
+| `stats` | `db` | `{version,uptime,dbCount,tableCount,dbSize,threads*,questions,slowQueries,bytes*,breakdown}` |
 | `query` | `db,sql` | `{type:'result',columns,rows,rowCount,ms}` or `{type:'exec',affected,ms}` |
 
 Every request is **POST** with a JSON body `{conn:{host,port,user,pass,db?}, ...params}`.
@@ -79,4 +80,4 @@ All planned API actions implemented.
 
 ## Status
 
-Phase 0 (Explorer) ✅. Phase 1 (Strata rebrand + theming) ✅. Phase 2 (Connection Settings — localStorage profiles, stateless creds) ✅. Phase 3 (Row CRUD) ✅. Phase 4 (SQL Editor — Query Runner, tabs, history) ✅. Next: Phase 5 (Dashboard) in [docs/PLAN.md](docs/PLAN.md).
+Phase 0 (Explorer) ✅. Phase 1 (Strata rebrand + theming) ✅. Phase 2 (Connection Settings — localStorage profiles, stateless creds) ✅. Phase 3 (Row CRUD) ✅. Phase 4 (SQL Editor) ✅. Phase 5 (Dashboard — server metrics) ✅. Next: Phase 6 (Polish) in [docs/PLAN.md](docs/PLAN.md).

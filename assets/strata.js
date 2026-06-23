@@ -587,6 +587,7 @@ applyTheme(localStorage.getItem('strata-theme') || 'system');
 function switchView(name) {
   $('viewBrowser').classList.toggle('hidden', name !== 'browser');
   $('viewQuery').classList.toggle('hidden', name !== 'query');
+  $('viewDashboard').classList.toggle('hidden', name !== 'dashboard');
   document.querySelectorAll('.navtab').forEach(t => {
     const on = t.dataset.view === name;
     t.classList.toggle('text-primary', on);
@@ -598,7 +599,62 @@ function switchView(name) {
     t.classList.toggle('font-medium', !on);
   });
   if (name === 'query') { $('qDbName').textContent = state.db || '—'; $('sqlEditor').focus(); }
+  if (name === 'dashboard') loadStats();
 }
+
+// ---- dashboard (Phase 5) -------------------------------------------------
+function fmtBytes(n) {
+  if (n < 1024) return n + ' B';
+  const u = ['KB', 'MB', 'GB', 'TB']; let i = -1;
+  do { n /= 1024; i++; } while (n >= 1024 && i < u.length - 1);
+  return n.toFixed(1) + ' ' + u[i];
+}
+function fmtDuration(s) {
+  const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
+  if (d) return `${d}d ${h}h`;
+  if (h) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+function statCard(icon, label, value, sub) {
+  return `<div class="glass-panel rounded-xl p-md flex flex-col gap-xs">
+    <div class="flex items-center gap-sm text-on-surface-variant"><span class="material-symbols-outlined text-[20px] text-primary">${icon}</span><span class="text-xs uppercase tracking-wider opacity-70">${esc(label)}</span></div>
+    <div class="font-display text-xl font-bold text-on-surface truncate" title="${esc(value)}">${esc(value)}</div>
+    ${sub ? `<div class="text-xs text-on-surface-variant opacity-60 font-mono">${esc(sub)}</div>` : ''}
+  </div>`;
+}
+
+async function loadStats() {
+  $('statCards').innerHTML = `<div class="col-span-4 text-center opacity-60 py-lg">Loading metrics…</div>`;
+  let s;
+  try { s = await api('stats', { db: state.db || '' }); }
+  catch (e) { $('statCards').innerHTML = `<div class="col-span-4 text-center text-error py-lg">${esc(e.message)}</div>`; return; }
+
+  $('dashServer').textContent = `MySQL ${s.version}`;
+  $('statCards').innerHTML = [
+    statCard('dns', 'Databases', s.dbCount.toLocaleString(), 'on this server'),
+    statCard('table_rows', `Tables in ${state.db || '—'}`, s.tableCount.toLocaleString(), fmtBytes(s.dbSize) + ' on disk'),
+    statCard('lan', 'Connections', s.threadsConnected.toLocaleString(), `${s.threadsRunning} running`),
+    statCard('schedule', 'Uptime', fmtDuration(s.uptime), `since start`),
+    statCard('database', 'Total queries', s.questions.toLocaleString(), null),
+    statCard('warning', 'Slow queries', s.slowQueries.toLocaleString(), null),
+    statCard('download', 'Bytes sent', fmtBytes(s.bytesSent), null),
+    statCard('upload', 'Bytes received', fmtBytes(s.bytesReceived), null),
+  ].join('');
+
+  const b = s.breakdown;
+  const max = Math.max(1, b.select, b.insert, b.update, b.delete);
+  const bar = (label, val, color) => `<div class="flex items-center gap-md">
+    <span class="w-16 text-xs uppercase tracking-wider text-on-surface-variant opacity-70">${label}</span>
+    <div class="flex-1 h-5 rounded bg-surface-container-lowest overflow-hidden"><div class="h-full ${color}" style="width:${(val / max * 100).toFixed(1)}%"></div></div>
+    <span class="w-24 text-right font-mono text-xs text-on-surface-variant">${val.toLocaleString()}</span>
+  </div>`;
+  $('breakdownChart').innerHTML =
+    bar('SELECT', b.select, 'bg-primary') +
+    bar('INSERT', b.insert, 'bg-green-500') +
+    bar('UPDATE', b.update, 'bg-amber-500') +
+    bar('DELETE', b.delete, 'bg-red-500');
+}
+$('btnRefreshStats').onclick = loadStats;
 document.querySelectorAll('.navtab').forEach(t => t.onclick = () => switchView(t.dataset.view));
 
 // ---- query runner (Phase 4) ----------------------------------------------

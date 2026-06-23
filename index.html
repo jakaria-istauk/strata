@@ -91,7 +91,7 @@
       <div class="hidden md:flex items-center gap-md border-l border-outline-variant pl-lg ml-sm">
         <span data-view="browser" class="navtab text-primary font-bold border-b-2 border-primary py-sm cursor-pointer">Data Browser</span>
         <span data-view="query" class="navtab text-on-surface-variant font-medium hover:bg-surface-container-high transition-colors px-sm py-xs rounded cursor-pointer">Query Runner</span>
-        <span class="text-on-surface-variant font-medium hover:bg-surface-container-high transition-colors px-sm py-xs rounded cursor-pointer opacity-50">Visualizer</span>
+        <span data-view="dashboard" class="navtab text-on-surface-variant font-medium hover:bg-surface-container-high transition-colors px-sm py-xs rounded cursor-pointer">Dashboard</span>
       </div>
     </nav>
     <div class="flex items-center gap-md">
@@ -220,6 +220,25 @@
         </table>
         <div id="qMsg" class="p-xl text-center text-on-surface-variant opacity-60">Run a query to see results.</div>
       </div>
+    </div>
+  </div>
+
+  <!-- Content: Dashboard -->
+  <div id="viewDashboard" class="hidden flex-1 flex flex-col overflow-auto scroll p-md gap-md">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-sm">
+        <span class="material-symbols-outlined text-primary">monitoring</span>
+        <h2 class="font-display text-lg font-bold text-on-surface">Server Dashboard</h2>
+        <span id="dashServer" class="px-sm py-[2px] rounded bg-secondary-container text-on-secondary-container text-[11px] font-mono tracking-wider"></span>
+      </div>
+      <button id="btnRefreshStats" class="flex items-center gap-sm px-sm py-sm rounded border border-outline-variant hover:bg-surface-container-high transition-colors text-[13px]">
+        <span class="material-symbols-outlined text-[18px]">refresh</span> Refresh
+      </button>
+    </div>
+    <div id="statCards" class="grid grid-cols-2 md:grid-cols-4 gap-md"></div>
+    <div class="glass-panel rounded-xl p-lg">
+      <h3 class="font-display font-bold text-on-surface mb-md">Query breakdown <span class="text-on-surface-variant opacity-60 text-sm font-body">(since server start)</span></h3>
+      <div id="breakdownChart" class="space-y-sm"></div>
     </div>
   </div>
 </main>

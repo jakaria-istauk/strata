@@ -83,10 +83,11 @@ Creds move out of `api.php` constants → sent per-request from client. `api.php
 - [x] Query tabs + history (last 40) in localStorage.
 - **Verified (Chrome):** SELECT, EXPLAIN, exec (SET), and a syntax error each render correctly; tabs + history work.
 
-## Phase 5 — Dashboard (optional)
-- [ ] Metrics: connections, DB count/size, table count, slow queries.
-- [ ] Stats cards + simple charts (sparkline/canvas, no heavy dep).
-- **Verify:** numbers match `SHOW STATUS` / information_schema.
+## Phase 5 — Dashboard ✅ DONE
+- [x] Metrics: connections, DB count, table count + size, uptime, queries, slow queries, bytes.
+- [x] Stat cards + CSS query-breakdown bars (SELECT/INSERT/UPDATE/DELETE), no heavy dep.
+- [x] `action=stats` reads `SHOW GLOBAL STATUS` + information_schema.
+- **Verified (Chrome):** cards + bars render against live server; refresh works.
 
 ## Phase 6 — Polish / Pre-release
 - [ ] Full-table CSV export (streamed).

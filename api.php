@@ -355,6 +355,51 @@ switch ($action) {
         }
     }
 
+    case 'stats': {
+        $p = pdo();
+        $status = [];
+        foreach ($p->query('SHOW GLOBAL STATUS')->fetchAll() as $r) {
+            $status[$r['Variable_name']] = $r['Value'];
+        }
+        $g = fn(string $k) => (int)($status[$k] ?? 0);
+        $version = (string)$p->query('SELECT VERSION()')->fetchColumn();
+        $dbCount = (int)$p->query('SELECT COUNT(*) FROM information_schema.SCHEMATA')->fetchColumn();
+
+        $db = (string)($IN['db'] ?? '');
+        $tableCount = 0; $dbSize = 0;
+        if ($db !== '') {
+            assertDb($p, $db);
+            $stmt = $p->prepare(
+                'SELECT COUNT(*) c, COALESCE(SUM(DATA_LENGTH + INDEX_LENGTH), 0) s
+                 FROM information_schema.TABLES WHERE TABLE_SCHEMA = ?'
+            );
+            $stmt->execute([$db]);
+            $row = $stmt->fetch();
+            $tableCount = (int)$row['c'];
+            $dbSize     = (int)$row['s'];
+        }
+        ok([
+            'version'          => $version,
+            'uptime'           => $g('Uptime'),
+            'threadsConnected' => $g('Threads_connected'),
+            'threadsRunning'   => $g('Threads_running'),
+            'questions'        => $g('Questions'),
+            'slowQueries'      => $g('Slow_queries'),
+            'bytesSent'        => $g('Bytes_sent'),
+            'bytesReceived'    => $g('Bytes_received'),
+            'breakdown'        => [
+                'select' => $g('Com_select'),
+                'insert' => $g('Com_insert'),
+                'update' => $g('Com_update'),
+                'delete' => $g('Com_delete'),
+            ],
+            'dbCount'    => $dbCount,
+            'db'         => $db,
+            'tableCount' => $tableCount,
+            'dbSize'     => $dbSize,
+        ]);
+    }
+
     default:
         fail(400, 'Unknown action: ' . $action);
 }
