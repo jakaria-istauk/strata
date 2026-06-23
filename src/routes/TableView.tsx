@@ -8,7 +8,6 @@ import { useRows } from '../hooks/useRows';
 import Grid from '../components/Grid';
 import Pagination from '../components/Pagination';
 import ColumnToggle from '../components/ColumnToggle';
-import { getHidden, setHidden } from '../lib/columnPrefs';
 
 const PER_PAGE = 50;
 
@@ -25,16 +24,9 @@ export default function TableView() {
   const [searchInput, setSearchInput] = useState(search);
   useEffect(() => setSearchInput(search), [search]);
 
-  // Hidden columns (localStorage, per db.table). Reload when the table changes.
-  const [hidden, setHiddenState] = useState<string[]>([]);
-  useEffect(() => {
-    setHiddenState(db && table ? getHidden(db, table) : []);
-  }, [db, table]);
-
-  function changeHidden(next: string[]) {
-    setHiddenState(next);
-    if (db && table) setHidden(db, table, next);
-  }
+  // Hidden columns — in-memory only (resets when the table changes).
+  const [hidden, setHidden] = useState<string[]>([]);
+  useEffect(() => setHidden([]), [db, table]);
 
   const { data, isFetching, error } = useRows(db, table, {
     page,
@@ -104,7 +96,7 @@ export default function TableView() {
           </div>
         </form>
         {data && data.columns.length > 0 && (
-          <ColumnToggle columns={data.columns} hidden={hidden} onChange={changeHidden} />
+          <ColumnToggle columns={data.columns} hidden={hidden} onChange={setHidden} />
         )}
       </div>
 
