@@ -15,21 +15,21 @@ Strata is a PHP+PDO JSON API (`api.php`) + vanilla-JS/Tailwind front-end (`index
 ```bash
 php -l api.php                          # lint before serving
 php -S 127.0.0.1:8899                   # Herd-independent
-# Herd is also live at http://adminer.test/
+# Herd is also live at http://strata.test/
 ```
 
 ## Smoke-test the API (no browser)
 ```bash
-curl -s "http://adminer.test/api.php?action=databases"
-curl -s "http://adminer.test/api.php?action=tables&db=wp"
-curl -s "http://adminer.test/api.php?action=rows&db=wp&table=wp_users&per_page=3"
+curl -s "http://strata.test/api.php?action=databases"
+curl -s "http://strata.test/api.php?action=tables&db=wp"
+curl -s "http://strata.test/api.php?action=rows&db=wp&table=wp_users&per_page=3"
 # or without a web server:
 php -r '$_GET=["action"=>"rows","db"=>"wp","table"=>"wp_users","per_page"=>"2"]; include "api.php";'
 ```
 Use DB `wp` (real data). Avoid `assetrail` (empty).
 
 ## Visual verify (chrome-devtools MCP)
-1. `new_page` → `http://adminer.test/` (or the `php -S` URL).
+1. `new_page` → `http://strata.test/` (or the `php -S` URL).
 2. `evaluate_script` to drive: set `#dbSelect` value + dispatch `change`, then click a table `<a data-table=…>` in `#tableList`.
 3. `take_screenshot` — confirm grid renders real rows, PK key icon, badges, pagination.
 4. `list_console_messages` (types: error,warn) — expect only the Tailwind-CDN dev warning + favicon 404; anything else is a regression.

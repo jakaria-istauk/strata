@@ -4,7 +4,7 @@ Project context for Claude Code. Read this first.
 
 ## What this is
 
-**Strata** — a modern, self-hosted MySQL admin client. Custom UI over a thin PHP+PDO JSON API. A full UI replacement for Adminer (not a theme). Vanilla JS + Tailwind front-end, no framework.
+**Strata** — a modern, self-hosted MySQL admin client. Custom UI over a thin PHP+PDO JSON API. Vanilla JS + Tailwind front-end, no framework.
 
 - Product spec: [docs/PRD.md](docs/PRD.md)
 - Phased build plan: [docs/PLAN.md](docs/PLAN.md) — **check current phase before starting work**
@@ -22,7 +22,7 @@ api.php            stateless JSON gateway (PDO)
 assets/            strata.css (theme tokens) + strata.js (app logic)
 docs/              PRD.md, PLAN.md — source of truth for scope/sequencing
 README.md          install / run / security
-legacy/            old Adminer build (gitignored, reference only)
+legacy/            old build (gitignored, reference only)
 ui/                design mockups (gitignored, reference only)
 ```
 
@@ -33,10 +33,10 @@ Served from repo **root**. App at `/`, API at `/api.php`.
 ```bash
 # Herd-independent: plain PHP server
 php -S 127.0.0.1:8899        # then open http://127.0.0.1:8899/
-# Or via Herd: http://adminer.test/
+# Or via Herd: http://strata.test/
 ```
 
-- Smoke-test API: `curl "http://adminer.test/api.php?action=databases"`
+- Smoke-test API: `curl "http://strata.test/api.php?action=databases"`
 - Lint PHP: `php -l api.php`
 - Visual verify: use chrome-devtools MCP (navigate → evaluate to pick db/table → screenshot → check console).
 

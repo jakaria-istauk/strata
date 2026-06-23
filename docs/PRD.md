@@ -1,6 +1,6 @@
 # Strata — Product Requirements (PRD)
 
-**A modern, self-hosted database admin client.** Custom UI over a thin PHP+PDO JSON API. Built as a full replacement for Adminer's UI (Option C), not a theme.
+**A modern, self-hosted database admin client.** Custom UI over a thin PHP+PDO JSON API.
 
 - **Status:** Phase 0 complete (Explorer foundation working against live MySQL).
 - **Owner:** jakariamd35@gmail.com
@@ -34,7 +34,7 @@ Runs anywhere PHP runs (`php -S`, Herd, Apache, nginx+fpm). Decoupled from Herd.
 
 ## 4. Personas
 
-- **Dev (primary):** wants a fast local replacement for phpMyAdmin/Adminer with a nicer UI.
+- **Dev (primary):** wants a fast, modern local MySQL admin tool with a nicer UI.
 - **Data architect:** browses large tables, writes ad-hoc SQL, inspects schema.
 
 ## 5. Features & Requirements
