@@ -17,9 +17,9 @@ Project context for Claude Code. Read this first.
 - All app state (connection profiles, theme, history) lives in browser **localStorage** — no server config file.
 
 ```
-index.html         app shell + Explorer screen (inline JS for now)
+index.html         app shell + Explorer screen markup (no inline app JS)
 api.php            stateless JSON gateway (PDO)
-assets/            front-end CSS (strata.css) + JS modules as they grow
+assets/            strata.css (theme tokens) + strata.js (app logic)
 docs/              PRD.md, PLAN.md — source of truth for scope/sequencing
 README.md          install / run / security
 legacy/            old Adminer build (gitignored, reference only)
