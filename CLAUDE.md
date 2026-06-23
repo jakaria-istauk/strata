@@ -51,14 +51,19 @@ Herd MySQL on `127.0.0.1:3306`, user `root`, no password. `wp` DB has real table
 | `tables` | `db` | `{tables:[{name,rows,type,engine,size}]}` |
 | `columns` | `db,table` | `{columns:[{name,type,key,nullable,default,extra}]}` |
 | `rows` | `db,table,page,per_page,sort,dir,search` | `{columns,rows,total,page,pages,…}` |
+| `test_connection` | (creds only) | `{ok,version,host}` |
 
-Planned (see PLAN.md): `test_connection`, `row_get`, `row_save`, `row_delete`, `query`.
+Every request is **POST** with a JSON body `{conn:{host,port,user,pass,db?}, ...params}`.
+`conn` carries the active profile's creds (api.php reads them there; no hardcoded creds).
+Action stays in the query string. Params may be in the query string or the body.
+
+Planned (see PLAN.md): `row_get`, `row_save`, `row_delete`, `query`.
 
 ## Conventions / guardrails
 
 - **SQL safety:** db/table/column identifiers are NEVER trusted from input — validate against `information_schema` before backtick-interpolating (`assertDb`/`assertTable`/`columnsOf` in api.php). Values always use bound params.
 - **Errors:** every API error returns JSON `{error}` + HTTP status. UI must show inline, never a blank grid.
-- **Creds:** Phase 2 moves DB creds out of `api.php` constants → sent per-request from client (localStorage profiles). `api.php` stays stateless. Until then, creds are the `DB_*` constants at top of api.php.
+- **Creds:** DB creds are sent per-request from the client (localStorage profiles) in the JSON body `conn`. `api.php` is stateless — no hardcoded creds. Passwords persist only when "Remember password" is on; otherwise kept in-memory and re-prompted on reload.
 - **Theming (Phase 1):** target is CSS-variable tokens with Light/Dark/System modes. Current index.html is dark-only hardcoded — don't add more hardcoded colors; migrate to tokens.
 - **Keep it vanilla:** no SPA framework. Split JS into modules under `assets/` only if it grows.
 
@@ -70,4 +75,4 @@ Planned (see PLAN.md): `test_connection`, `row_get`, `row_save`, `row_delete`, `
 
 ## Status
 
-Phase 0 (Explorer foundation) ✅ done. Phase 1 (rebrand → Strata + Light/Dark/System theming) ✅ done — tokens in `assets/strata.css`, theme switcher in top bar. Next: Phase 2 (Connection Settings) in [docs/PLAN.md](docs/PLAN.md).
+Phase 0 (Explorer) ✅. Phase 1 (Strata rebrand + theming) ✅. Phase 2 (Connection Settings — localStorage profiles, stateless creds) ✅. Next: Phase 3 (Row CRUD) in [docs/PLAN.md](docs/PLAN.md).

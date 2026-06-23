@@ -55,16 +55,16 @@ Creds move out of `api.php` constants → sent per-request from client. `api.php
 - [x] Persist mode in localStorage; apply before first paint (no flash).
 - **Verified:** all 3 modes + reload persistence in Chrome (devtools MCP) + Firefox.
 
-## Phase 2 — Connection Settings
+## Phase 2 — Connection Settings ✅ DONE
 **Goal:** connect to any MySQL; creds in localStorage.
-- [ ] Settings page/modal: host, port, user, password, default DB, profile name.
-- [ ] Multiple profiles; active-profile selector in sidebar.
-- [ ] `api.php`: read creds from request; drop hardcoded constants.
-- [ ] `action=test_connection` → ping + return server version.
-- [ ] "Remember password" toggle (else session-only / re-prompt).
-- [ ] First-run: if no profile, show connect screen.
-- **Verify:** add a 2nd MySQL profile, switch, browse; wrong creds → clean error.
-- **Security note in README:** plaintext localStorage, localhost binding recommended.
+- [x] Settings modal: host, port, user, password, default DB, profile name.
+- [x] Multiple profiles; active-profile selector in sidebar.
+- [x] `api.php`: reads creds from request body `conn`; constants dropped.
+- [x] `action=test_connection` → ping + return server version.
+- [x] "Remember password" toggle (else session-only, re-prompt on reload).
+- [x] First-run: no profile → blocking connect screen.
+- **Verified (Chrome):** first-run, test, save, 2nd profile, switch, wrong creds → clean inline error, password re-prompt on reload.
+- **Security note in README:** plaintext localStorage, localhost binding recommended (already documented).
 
 ## Phase 3 — Row CRUD
 **Goal:** safe data editing.

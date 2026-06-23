@@ -52,6 +52,16 @@
   </div>
 
   <div class="px-sm mb-sm">
+    <label class="text-xs text-on-surface-variant opacity-60 uppercase tracking-wider px-sm">Connection</label>
+    <div class="mt-xs flex items-center gap-xs">
+      <select id="profileSelect" class="flex-1 min-w-0 bg-surface-container-lowest border border-outline-variant rounded-lg px-sm py-sm text-on-surface focus:ring-primary focus:border-primary"></select>
+      <button id="btnConnections" title="Manage connections" class="shrink-0 flex items-center justify-center w-9 h-9 rounded-lg border border-outline-variant hover:bg-surface-container-high transition-colors text-on-surface-variant">
+        <span class="material-symbols-outlined text-[20px]">settings</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="px-sm mb-sm">
     <label class="text-xs text-on-surface-variant opacity-60 uppercase tracking-wider px-sm">Database</label>
     <select id="dbSelect" class="mt-xs w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-sm py-sm text-on-surface focus:ring-primary focus:border-primary"></select>
   </div>
@@ -158,6 +168,70 @@
     </footer>
   </div>
 </main>
+
+<!-- Connections modal -->
+<div id="connModal" class="hidden fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-md">
+  <div class="bg-surface-container border border-outline-variant rounded-xl w-full max-w-[680px] max-h-[88vh] flex flex-col shadow-2xl">
+    <div class="flex items-center justify-between px-lg py-md border-b border-outline-variant">
+      <h2 id="connModalTitle" class="font-display text-lg font-bold text-on-surface">Connections</h2>
+      <button id="connClose" class="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-surface-container-high text-on-surface-variant"><span class="material-symbols-outlined text-[20px]">close</span></button>
+    </div>
+    <div class="flex-1 overflow-auto scroll p-lg">
+      <!-- list view -->
+      <div id="connList">
+        <div id="profileList" class="space-y-sm mb-md"></div>
+        <button id="btnNewProfile" class="flex items-center gap-sm px-md py-sm rounded-lg border border-dashed border-outline-variant hover:bg-surface-container-high transition-colors text-on-surface-variant w-full justify-center">
+          <span class="material-symbols-outlined text-[20px]">add</span> New connection
+        </button>
+      </div>
+      <!-- form view -->
+      <form id="connForm" class="hidden space-y-md">
+        <div>
+          <label class="block text-xs uppercase tracking-wider text-on-surface-variant opacity-70 mb-xs">Profile name</label>
+          <input name="name" required placeholder="e.g. Local Herd" class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-sm py-sm text-on-surface focus:ring-primary focus:border-primary"/>
+        </div>
+        <div class="grid grid-cols-3 gap-md">
+          <div class="col-span-2">
+            <label class="block text-xs uppercase tracking-wider text-on-surface-variant opacity-70 mb-xs">Host</label>
+            <input name="host" required value="127.0.0.1" class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-sm py-sm text-on-surface focus:ring-primary focus:border-primary"/>
+          </div>
+          <div>
+            <label class="block text-xs uppercase tracking-wider text-on-surface-variant opacity-70 mb-xs">Port</label>
+            <input name="port" type="number" value="3306" class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-sm py-sm text-on-surface focus:ring-primary focus:border-primary"/>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-md">
+          <div>
+            <label class="block text-xs uppercase tracking-wider text-on-surface-variant opacity-70 mb-xs">User</label>
+            <input name="user" required value="root" class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-sm py-sm text-on-surface focus:ring-primary focus:border-primary"/>
+          </div>
+          <div>
+            <label class="block text-xs uppercase tracking-wider text-on-surface-variant opacity-70 mb-xs">Password</label>
+            <input name="pass" type="password" autocomplete="off" class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-sm py-sm text-on-surface focus:ring-primary focus:border-primary"/>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs uppercase tracking-wider text-on-surface-variant opacity-70 mb-xs">Default database <span class="opacity-50 normal-case">(optional)</span></label>
+          <input name="db" placeholder="leave blank to pick after connecting" class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-sm py-sm text-on-surface focus:ring-primary focus:border-primary"/>
+        </div>
+        <label class="flex items-center gap-sm text-on-surface-variant cursor-pointer">
+          <input name="remember" type="checkbox" checked class="rounded border-outline-variant text-primary focus:ring-primary"/>
+          <span>Remember password <span class="opacity-50 text-xs">(stored in this browser; otherwise asked each session)</span></span>
+        </label>
+        <div id="connTestMsg" class="hidden text-sm rounded-lg px-sm py-sm"></div>
+        <div class="flex items-center justify-between pt-sm">
+          <button type="button" id="btnTest" class="flex items-center gap-sm px-md py-sm rounded-lg border border-outline-variant hover:bg-surface-container-high transition-colors text-on-surface">
+            <span class="material-symbols-outlined text-[18px]">bolt</span> Test connection
+          </button>
+          <div class="flex items-center gap-sm">
+            <button type="button" id="btnCancelForm" class="px-md py-sm rounded-lg hover:bg-surface-container-high text-on-surface-variant">Cancel</button>
+            <button type="submit" class="px-md py-sm rounded-lg bg-primary text-on-primary font-semibold hover:opacity-90 transition-opacity">Save</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 
 <script src="assets/strata.js" defer></script>
 </body>

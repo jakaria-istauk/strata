@@ -1,9 +1,12 @@
 <?php
 /**
- * NexusDB Pro — JSON API backend (Option C custom UI).
- * Standalone PDO layer over local Herd MySQL. No Adminer dependency.
+ * Strata — JSON API backend. Standalone PDO layer over any MySQL.
  *
- * Routing: api.php?action=<name>&...params
+ * Stateless gateway: connection credentials are NOT hardcoded. The client
+ * sends them per-request in the JSON body under `conn` (localStorage profiles
+ * are the source of truth). See docs/PLAN.md Phase 2.
+ *
+ * Routing: api.php?action=<name>   (params in query string and/or JSON body)
  * All identifiers (db/table/column) are validated against live schema
  * before being interpolated, since they cannot be bound parameters.
  */
@@ -13,13 +16,16 @@ declare(strict_types=1);
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
 
-const DB_HOST = '127.0.0.1';
-const DB_PORT = 3306;
-const DB_USER = 'root';
-const DB_PASS = '';
-
 const MAX_PER_PAGE = 500;
 const DEFAULT_PER_PAGE = 50;
+
+// ---- request input (query + JSON body) -----------------------------------
+
+$RAW  = file_get_contents('php://input') ?: '';
+$BODY = $RAW !== '' ? (json_decode($RAW, true) ?: []) : [];
+if (!is_array($BODY)) $BODY = [];
+// Params: query string overlaid with JSON body (body wins for non-creds too).
+$IN = array_merge($_GET, $BODY);
 
 function fail(int $code, string $msg): never {
     http_response_code($code);
@@ -32,19 +38,36 @@ function ok(array $data): never {
     exit;
 }
 
+/** Connection config from the request body's `conn` object. */
+function connConfig(): array {
+    global $BODY;
+    $c = $BODY['conn'] ?? null;
+    if (!is_array($c) || ($c['host'] ?? '') === '' || ($c['user'] ?? '') === '') {
+        fail(400, 'No connection: send host/user in the request body `conn`.');
+    }
+    return [
+        'host' => (string)$c['host'],
+        'port' => (int)($c['port'] ?? 3306),
+        'user' => (string)$c['user'],
+        'pass' => (string)($c['pass'] ?? ''),
+        'db'   => isset($c['db']) && $c['db'] !== '' ? (string)$c['db'] : null,
+    ];
+}
+
 function pdo(?string $db = null): PDO {
-    $dsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';charset=utf8mb4';
+    $c = connConfig();
+    $dsn = 'mysql:host=' . $c['host'] . ';port=' . $c['port'] . ';charset=utf8mb4';
     if ($db !== null) {
         $dsn .= ';dbname=' . $db;
     }
     try {
-        return new PDO($dsn, DB_USER, DB_PASS, [
+        return new PDO($dsn, $c['user'], $c['pass'], [
             PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES   => false,
         ]);
     } catch (PDOException $e) {
-        fail(500, 'DB connection failed: ' . $e->getMessage());
+        fail(502, 'DB connection failed: ' . $e->getMessage());
     }
 }
 
@@ -93,9 +116,16 @@ function columnsOf(PDO $p, string $db, string $table): array {
 
 // ---- request dispatch ----------------------------------------------------
 
-$action = $_GET['action'] ?? '';
+$action = (string)($IN['action'] ?? '');
 
 switch ($action) {
+
+    case 'test_connection': {
+        $c = connConfig();
+        $p = pdo();
+        $version = (string)$p->query('SELECT VERSION()')->fetchColumn();
+        ok(['ok' => true, 'version' => $version, 'host' => $c['host']]);
+    }
 
     case 'databases': {
         $p = pdo();
@@ -107,7 +137,7 @@ switch ($action) {
     }
 
     case 'tables': {
-        $db = assertDb(pdo(), (string)($_GET['db'] ?? ''));
+        $db = assertDb(pdo(), (string)($IN['db'] ?? ''));
         $p  = pdo();
         $stmt = $p->prepare(
             'SELECT TABLE_NAME AS name, TABLE_ROWS AS `rows`, TABLE_TYPE AS type,
@@ -122,27 +152,27 @@ switch ($action) {
 
     case 'columns': {
         $base  = pdo();
-        $db    = assertDb($base, (string)($_GET['db'] ?? ''));
-        $table = assertTable($base, $db, (string)($_GET['table'] ?? ''));
+        $db    = assertDb($base, (string)($IN['db'] ?? ''));
+        $table = assertTable($base, $db, (string)($IN['table'] ?? ''));
         ok(['db' => $db, 'table' => $table, 'columns' => columnsOf($base, $db, $table)]);
     }
 
     case 'rows': {
         $base  = pdo();
-        $db    = assertDb($base, (string)($_GET['db'] ?? ''));
-        $table = assertTable($base, $db, (string)($_GET['table'] ?? ''));
+        $db    = assertDb($base, (string)($IN['db'] ?? ''));
+        $table = assertTable($base, $db, (string)($IN['table'] ?? ''));
         $cols  = columnsOf($base, $db, $table);
         $colNames = array_column($cols, 'name');
 
         // pagination
-        $perPage = (int)($_GET['per_page'] ?? DEFAULT_PER_PAGE);
+        $perPage = (int)($IN['per_page'] ?? DEFAULT_PER_PAGE);
         $perPage = max(1, min(MAX_PER_PAGE, $perPage));
-        $page    = max(1, (int)($_GET['page'] ?? 1));
+        $page    = max(1, (int)($IN['page'] ?? 1));
         $offset  = ($page - 1) * $perPage;
 
         // sort (validate column against schema)
-        $sort = (string)($_GET['sort'] ?? '');
-        $dir  = strtoupper((string)($_GET['dir'] ?? 'ASC')) === 'DESC' ? 'DESC' : 'ASC';
+        $sort = (string)($IN['sort'] ?? '');
+        $dir  = strtoupper((string)($IN['dir'] ?? 'ASC')) === 'DESC' ? 'DESC' : 'ASC';
         $orderSql = '';
         if ($sort !== '' && in_array($sort, $colNames, true)) {
             $orderSql = ' ORDER BY ' . qid($sort) . ' ' . $dir;
@@ -151,7 +181,7 @@ switch ($action) {
         // search across all columns (LIKE), bound params
         $where  = '';
         $params = [];
-        $search = trim((string)($_GET['search'] ?? ''));
+        $search = trim((string)($IN['search'] ?? ''));
         if ($search !== '') {
             $likes = [];
             foreach ($colNames as $c) {
