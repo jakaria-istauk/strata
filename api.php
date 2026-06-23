@@ -200,6 +200,22 @@ switch ($action) {
         ok(['ok' => true, 'db' => $db, 'name' => $name]);
     }
 
+    case 'drop_database': {
+        $db = assertDb(pdo(), (string)($IN['db'] ?? ''));
+        try { pdo()->exec('DROP DATABASE ' . qid($db)); }
+        catch (PDOException $e) { fail(400, $e->getMessage()); }
+        ok(['ok' => true, 'dropped' => $db]);
+    }
+
+    case 'drop_table': {
+        $base  = pdo();
+        $db    = assertDb($base, (string)($IN['db'] ?? ''));
+        $table = assertTable($base, $db, (string)($IN['table'] ?? ''));
+        try { pdo($db)->exec('DROP TABLE ' . qid($table)); }
+        catch (PDOException $e) { fail(400, $e->getMessage()); }
+        ok(['ok' => true, 'dropped' => $table]);
+    }
+
     case 'tables': {
         $db = assertDb(pdo(), (string)($IN['db'] ?? ''));
         $p  = pdo();

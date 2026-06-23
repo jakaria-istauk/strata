@@ -80,12 +80,17 @@ function renderTableList() {
     const active = t.name === state.table;
     const icon = t.type === 'VIEW' ? 'visibility' : 'table_rows';
     return `<a href="#" data-table="${esc(t.name)}"
-      class="flex items-center justify-between gap-sm px-sm py-xs rounded-lg transition-colors ${active ? 'bg-secondary-container text-on-secondary-container font-semibold' : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low'}">
+      class="group flex items-center justify-between gap-sm px-sm py-xs rounded-lg transition-colors ${active ? 'bg-secondary-container text-on-secondary-container font-semibold' : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low'}">
       <span class="flex items-center gap-sm truncate"><span class="material-symbols-outlined text-[18px] opacity-70">${icon}</span><span class="truncate">${esc(t.name)}</span></span>
-      <span class="text-[10px] opacity-50 font-mono shrink-0">${t.rows ?? 0}</span></a>`;
+      <span class="flex items-center gap-xs shrink-0">
+        <button class="dropTbl hidden group-hover:flex items-center justify-center w-5 h-5 rounded hover:bg-error/15 text-on-surface-variant hover:text-error" data-table="${esc(t.name)}" title="Drop table"><span class="material-symbols-outlined text-[15px]">delete</span></button>
+        <span class="text-[10px] opacity-50 font-mono">${t.rows ?? 0}</span>
+      </span></a>`;
   }).join('') || `<p class="text-xs text-on-surface-variant opacity-40 px-sm py-md">No match</p>`;
   $('tableList').querySelectorAll('a').forEach(a =>
     a.onclick = (e) => { e.preventDefault(); selectTable(a.dataset.table); });
+  $('tableList').querySelectorAll('.dropTbl').forEach(b =>
+    b.onclick = (e) => { e.preventDefault(); e.stopPropagation(); dropTable(b.dataset.table); });
 }
 
 function selectTable(name) {
@@ -93,6 +98,20 @@ function selectTable(name) {
   $('rowSearch').value = '';
   renderTableList();
   loadRows();
+}
+
+function dropTable(name) {
+  confirmDanger({
+    title: 'Drop table',
+    message: `Permanently delete table <b class="text-on-surface">${esc(name)}</b> from <b class="text-on-surface">${esc(state.db)}</b>, including <b class="text-error">all its rows</b>. This cannot be undone.`,
+    expect: name,
+    onOk: async () => {
+      await api('drop_table', { db: state.db, table: name });
+      flash(`Table "${name}" dropped`);
+      if (state.table === name) state.table = null;
+      await loadTables();   // selects first remaining table, or shows empty
+    },
+  });
 }
 
 function renderEmpty(msg) {
@@ -267,6 +286,59 @@ $('dbSelect').onchange = (e) => {
   if (!$('viewDashboard').classList.contains('hidden')) loadStats(); // refresh Dashboard if open
   loadTables();
 };
+// ---- type-to-confirm danger modal (drop) ---------------------------------
+
+let _confirmCb = null;
+function confirmDanger({ title, message, expect, okLabel, onOk }) {
+  _confirmCb = onOk;
+  $('confirmTitle').textContent = title;
+  $('confirmMsg').innerHTML = message;
+  $('confirmInput').value = '';
+  $('confirmInput').placeholder = `type "${expect}" to confirm`;
+  $('confirmInput')._expect = expect;
+  $('confirmOk').textContent = okLabel || 'Drop';
+  $('confirmOk').disabled = true;
+  $('confirmErr').classList.add('hidden');
+  $('confirmModal').classList.remove('hidden');
+  $('confirmInput').focus();
+}
+function closeConfirm() { $('confirmModal').classList.add('hidden'); _confirmCb = null; }
+$('confirmCancel').onclick = closeConfirm;
+$('confirmModal').addEventListener('click', (e) => { if (e.target.id === 'confirmModal') closeConfirm(); });
+$('confirmInput').oninput = (e) => {
+  $('confirmOk').disabled = e.target.value !== e.target._expect;
+};
+$('confirmForm').onsubmit = async (e) => {
+  e.preventDefault();
+  if ($('confirmInput').value !== $('confirmInput')._expect) return;
+  const cb = _confirmCb;
+  try {
+    await cb();
+    closeConfirm();
+  } catch (err) {
+    const m = $('confirmErr');
+    m.className = 'text-sm rounded-lg px-sm py-sm bg-red-950/30 text-red-400 border border-red-900/50';
+    m.textContent = err.message;
+  }
+};
+
+// -- drop database (current selection)
+$('btnDropDb').onclick = () => {
+  const db = state.db;
+  if (!db) { flash('No database selected'); return; }
+  confirmDanger({
+    title: 'Drop database',
+    message: `Permanently delete database <b class="text-on-surface">${esc(db)}</b> and <b class="text-error">all its tables and data</b>. This cannot be undone.`,
+    expect: db,
+    onOk: async () => {
+      await api('drop_database', { db });
+      flash(`Database "${db}" dropped`);
+      state.db = null; state.table = null;
+      await loadDatabases();      // reselects first remaining db
+    },
+  });
+};
+
 // ---- create database / table ---------------------------------------------
 
 function bannerMsg(id, text, kind) {

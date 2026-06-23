@@ -50,6 +50,8 @@ Herd MySQL on `127.0.0.1:3306`, user `root`, no password. `wp` DB has real table
 | `databases` | — | `{databases:[]}` |
 | `create_database` | `name` | `{ok,name}` (utf8mb4 / unicode_ci) |
 | `create_table` | `db,name,columns[{name,type,nullable,auto_increment,pk}]` | `{ok,db,name}` (InnoDB / utf8mb4) |
+| `drop_database` | `db` | `{ok,dropped}` |
+| `drop_table` | `db,table` | `{ok,dropped}` |
 | `tables` | `db` | `{tables:[{name,rows,type,engine,size}]}` |
 | `columns` | `db,table` | `{columns:[{name,type,key,nullable,default,extra}]}` |
 | `rows` | `db,table,page,per_page,sort,dir,search` | `{columns,rows,total,page,pages,…}` |
@@ -83,4 +85,4 @@ All planned API actions implemented.
 
 ## Status
 
-Phase 0 (Explorer) ✅. Phase 1 (Strata rebrand + theming) ✅. Phase 2 (Connection Settings — localStorage profiles, stateless creds) ✅. Phase 3 (Row CRUD) ✅. Phase 4 (SQL Editor) ✅. Phase 5 (Dashboard) ✅. Phase 6 (Polish — FK links, column show/hide, full CSV export, shortcuts) ✅ (Tailwind CLI build deferred). Phase 7 (Schema ops) 🚧 — create database + create table done; drop/alter pending.
+Phase 0 (Explorer) ✅. Phase 1 (Strata rebrand + theming) ✅. Phase 2 (Connection Settings — localStorage profiles, stateless creds) ✅. Phase 3 (Row CRUD) ✅. Phase 4 (SQL Editor) ✅. Phase 5 (Dashboard) ✅. Phase 6 (Polish — FK links, column show/hide, full CSV export, shortcuts) ✅ (Tailwind CLI build deferred). Phase 7 (Schema ops) 🚧 — create + drop database/table done; alter pending.

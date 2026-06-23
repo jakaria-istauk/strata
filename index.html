@@ -69,7 +69,10 @@
   <div class="px-sm mb-sm">
     <div class="flex items-center justify-between px-sm">
       <label class="text-xs text-on-surface-variant opacity-60 uppercase tracking-wider">Database</label>
-      <button id="btnNewDb" title="New database" class="flex items-center justify-center w-5 h-5 rounded hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface"><span class="material-symbols-outlined text-[16px]">add</span></button>
+      <div class="flex items-center gap-xs">
+        <button id="btnDropDb" title="Drop current database" class="flex items-center justify-center w-5 h-5 rounded hover:bg-error/15 text-on-surface-variant hover:text-error"><span class="material-symbols-outlined text-[16px]">delete</span></button>
+        <button id="btnNewDb" title="New database" class="flex items-center justify-center w-5 h-5 rounded hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface"><span class="material-symbols-outlined text-[16px]">add</span></button>
+      </div>
     </div>
     <select id="dbSelect" class="mt-xs w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-sm py-sm text-on-surface focus:ring-primary focus:border-primary"></select>
   </div>
@@ -403,6 +406,25 @@
     <div class="flex items-center justify-end gap-sm px-lg py-md border-t border-outline-variant">
       <button type="button" id="newTableCancel" class="px-md py-sm rounded-lg hover:bg-surface-container-high text-on-surface-variant">Cancel</button>
       <button type="submit" class="px-md py-sm rounded-lg bg-primary text-on-primary font-semibold hover:opacity-90 transition-opacity">Create table</button>
+    </div>
+  </form>
+</div>
+
+<!-- Type-to-confirm danger modal (drop db / table) -->
+<div id="confirmModal" class="hidden fixed inset-0 z-[110] bg-black/50 backdrop-blur-sm flex items-center justify-center p-md">
+  <form id="confirmForm" class="bg-surface-container border border-error/40 rounded-xl w-full max-w-[440px] flex flex-col shadow-2xl">
+    <div class="flex items-center gap-sm px-lg py-md border-b border-outline-variant">
+      <span class="material-symbols-outlined text-error">warning</span>
+      <h2 id="confirmTitle" class="font-display text-lg font-bold text-on-surface">Confirm</h2>
+    </div>
+    <div class="p-lg space-y-md">
+      <p id="confirmMsg" class="text-sm text-on-surface-variant"></p>
+      <input id="confirmInput" autocomplete="off" class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-sm py-sm text-on-surface focus:ring-error focus:border-error"/>
+      <div id="confirmErr" class="hidden text-sm rounded-lg px-sm py-sm"></div>
+      <div class="flex items-center justify-end gap-sm">
+        <button type="button" id="confirmCancel" class="px-md py-sm rounded-lg hover:bg-surface-container-high text-on-surface-variant">Cancel</button>
+        <button type="submit" id="confirmOk" disabled class="px-md py-sm rounded-lg bg-error text-white font-semibold hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed">Drop</button>
+      </div>
     </div>
   </form>
 </div>

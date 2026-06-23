@@ -102,9 +102,9 @@ Creds move out of `api.php` constants → sent per-request from client. `api.php
 ## Phase 7 — Schema ops 🚧 IN PROGRESS
 - [x] Create database (`create_database`) — sidebar **+** by the DB selector → name modal; utf8mb4/unicode_ci.
 - [x] Create table (`create_table`) — sidebar **+** by Tables → modal with column builder (name, type, PK, AUTO_INCREMENT, NULL); InnoDB/utf8mb4.
-- [ ] Drop database / drop table.
+- [x] Drop database / drop table — trash buttons (DB selector + per-table hover) → type-to-confirm modal.
 - [ ] Alter table (add/modify/drop column, indexes).
-- **Safety:** new identifiers validated via `assertIdent` (whitelist), types regex-checked, all backtick-quoted.
+- **Safety:** new identifiers validated via `assertIdent` (whitelist), types regex-checked, all backtick-quoted. Drops validate against schema (`assertDb`/`assertTable`) and require typing the exact name to confirm.
 
 ---
 
