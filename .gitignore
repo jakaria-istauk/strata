@@ -13,3 +13,9 @@ app/assets/*.min.css
 
 # Local
 *.log
+
+# Design mockups (reference only, not shipped)
+ui/
+
+# Legacy Adminer (reference backup)
+legacy/

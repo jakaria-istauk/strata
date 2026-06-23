@@ -24,16 +24,15 @@ Creds move out of `api.php` constants → sent per-request from client. `api.php
 
 ### File layout (target)
 ```
-/                      repo root (git: strata)
+/                      repo root (git: strata) — app served from here
   PRD.md  PLAN.md  README.md
-  app/
-    index.html         shell + Explorer
-    api.php            JSON gateway
-    assets/
-      strata.css       CSS-variable theme tokens (light/dark)
-      strata.js        app logic (modularised from inline)
-    legacy/            old adminer index.php (reference, gitignored or archived)
-  ui/                  design mockups (reference)
+  index.html           shell + Explorer
+  api.php              JSON gateway
+  assets/
+    strata.css         CSS-variable theme tokens (light/dark)
+    strata.js          app logic (modularised from inline)
+  legacy/              old adminer (reference, gitignored)
+  ui/                  design mockups (reference, gitignored)
 ```
 
 ---
