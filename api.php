@@ -76,6 +76,14 @@ function qid(string $id): string {
     return '`' . str_replace('`', '``', $id) . '`';
 }
 
+/** Validate a *new* identifier (db/table/column name) before it exists in schema. */
+function assertIdent(string $id, string $what): string {
+    if (!preg_match('/^[A-Za-z0-9_$]{1,64}$/', $id)) {
+        fail(400, "Invalid $what name (use letters, digits, _ or \$; max 64).");
+    }
+    return $id;
+}
+
 /** Validate a database exists; return it or fail. */
 function assertDb(PDO $p, string $db): string {
     $stmt = $p->prepare(
@@ -149,6 +157,47 @@ switch ($action) {
              ORDER BY SCHEMA_NAME"
         )->fetchAll();
         ok(['databases' => array_column($rows, 'name')]);
+    }
+
+    case 'create_database': {
+        $name = assertIdent((string)($IN['name'] ?? ''), 'database');
+        $p = pdo();
+        try {
+            $p->exec('CREATE DATABASE ' . qid($name)
+                . ' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
+        } catch (PDOException $e) { fail(400, $e->getMessage()); }
+        ok(['ok' => true, 'name' => $name]);
+    }
+
+    case 'create_table': {
+        $db   = assertDb(pdo(), (string)($IN['db'] ?? ''));
+        $name = assertIdent((string)($IN['name'] ?? ''), 'table');
+        $cols = $IN['columns'] ?? null;
+        if (!is_array($cols) || !$cols) fail(400, 'At least one column required.');
+
+        $defs = []; $pks = [];
+        foreach ($cols as $c) {
+            if (!is_array($c)) continue;
+            $cn   = assertIdent((string)($c['name'] ?? ''), 'column');
+            $type = trim((string)($c['type'] ?? ''));
+            // type may include length/enum list, e.g. VARCHAR(255), DECIMAL(10,2)
+            if (!preg_match('/^[A-Za-z0-9_ ,()\']{1,128}$/', $type)) {
+                fail(400, "Invalid column type: $type");
+            }
+            $def = qid($cn) . ' ' . $type . (!empty($c['nullable']) ? ' NULL' : ' NOT NULL');
+            if (!empty($c['auto_increment'])) $def .= ' AUTO_INCREMENT';
+            $defs[] = $def;
+            if (!empty($c['pk'])) $pks[] = qid($cn);
+        }
+        if (!$defs) fail(400, 'At least one valid column required.');
+        if ($pks)  $defs[] = 'PRIMARY KEY (' . implode(', ', $pks) . ')';
+
+        $sql = 'CREATE TABLE ' . qid($name) . ' (' . implode(', ', $defs)
+             . ') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4';
+        $conn = pdo($db);
+        try { $conn->exec($sql); }
+        catch (PDOException $e) { fail(400, $e->getMessage()); }
+        ok(['ok' => true, 'db' => $db, 'name' => $name]);
     }
 
     case 'tables': {

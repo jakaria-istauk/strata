@@ -67,13 +67,19 @@
   </div>
 
   <div class="px-sm mb-sm">
-    <label class="text-xs text-on-surface-variant opacity-60 uppercase tracking-wider px-sm">Database</label>
+    <div class="flex items-center justify-between px-sm">
+      <label class="text-xs text-on-surface-variant opacity-60 uppercase tracking-wider">Database</label>
+      <button id="btnNewDb" title="New database" class="flex items-center justify-center w-5 h-5 rounded hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface"><span class="material-symbols-outlined text-[16px]">add</span></button>
+    </div>
     <select id="dbSelect" class="mt-xs w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-sm py-sm text-on-surface focus:ring-primary focus:border-primary"></select>
   </div>
 
   <div class="px-sm mb-xs flex items-center justify-between">
     <span class="text-xs text-on-surface-variant opacity-60 uppercase tracking-wider px-sm">Tables</span>
-    <span id="tableCount" class="text-xs text-on-surface-variant opacity-40 px-sm"></span>
+    <div class="flex items-center gap-xs">
+      <span id="tableCount" class="text-xs text-on-surface-variant opacity-40"></span>
+      <button id="btnNewTable" title="New table" class="flex items-center justify-center w-5 h-5 rounded hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface"><span class="material-symbols-outlined text-[16px]">add</span></button>
+    </div>
   </div>
   <div class="px-sm mb-sm">
     <input id="tableFilter" type="text" placeholder="Filter tables…" class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-sm py-xs text-xs text-on-surface focus:ring-primary focus:border-primary"/>
@@ -341,6 +347,64 @@
       </form>
     </div>
   </div>
+</div>
+
+<!-- New database modal -->
+<div id="newDbModal" class="hidden fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-md">
+  <form id="newDbForm" class="bg-surface-container border border-outline-variant rounded-xl w-full max-w-[420px] flex flex-col shadow-2xl">
+    <div class="flex items-center justify-between px-lg py-md border-b border-outline-variant">
+      <h2 class="font-display text-lg font-bold text-on-surface">New database</h2>
+      <button type="button" id="newDbClose" class="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-surface-container-high text-on-surface-variant"><span class="material-symbols-outlined text-[20px]">close</span></button>
+    </div>
+    <div class="p-lg space-y-md">
+      <div>
+        <label class="block text-xs uppercase tracking-wider text-on-surface-variant opacity-70 mb-xs">Name</label>
+        <input name="name" required autocomplete="off" placeholder="my_database" class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-sm py-sm text-on-surface focus:ring-primary focus:border-primary"/>
+        <p class="text-xs text-on-surface-variant opacity-50 mt-xs">utf8mb4 / unicode_ci. Letters, digits, _ or $.</p>
+      </div>
+      <div id="newDbMsg" class="hidden text-sm rounded-lg px-sm py-sm"></div>
+      <div class="flex items-center justify-end gap-sm">
+        <button type="button" id="newDbCancel" class="px-md py-sm rounded-lg hover:bg-surface-container-high text-on-surface-variant">Cancel</button>
+        <button type="submit" class="px-md py-sm rounded-lg bg-primary text-on-primary font-semibold hover:opacity-90 transition-opacity">Create</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- New table modal -->
+<div id="newTableModal" class="hidden fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-md">
+  <form id="newTableForm" class="bg-surface-container border border-outline-variant rounded-xl w-full max-w-[760px] max-h-[88vh] flex flex-col shadow-2xl">
+    <div class="flex items-center justify-between px-lg py-md border-b border-outline-variant">
+      <h2 class="font-display text-lg font-bold text-on-surface">New table <span id="newTableDb" class="text-on-surface-variant opacity-60 text-sm font-normal"></span></h2>
+      <button type="button" id="newTableClose" class="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-surface-container-high text-on-surface-variant"><span class="material-symbols-outlined text-[20px]">close</span></button>
+    </div>
+    <div class="flex-1 overflow-auto scroll p-lg space-y-md">
+      <div>
+        <label class="block text-xs uppercase tracking-wider text-on-surface-variant opacity-70 mb-xs">Table name</label>
+        <input name="name" required autocomplete="off" placeholder="my_table" class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-sm py-sm text-on-surface focus:ring-primary focus:border-primary"/>
+      </div>
+      <div>
+        <div class="flex items-center justify-between mb-xs">
+          <label class="text-xs uppercase tracking-wider text-on-surface-variant opacity-70">Columns</label>
+          <div class="grid grid-cols-[1fr_1fr_44px_44px_36px] gap-sm text-[10px] uppercase tracking-wider text-on-surface-variant opacity-40 pr-[44px]">
+            <span>Name</span><span>Type</span>
+            <span class="text-center cursor-help underline decoration-dotted" title="Primary Key — uniquely identifies each row. Implies NOT NULL; used for edit & delete.">PK</span>
+            <span class="text-center cursor-help underline decoration-dotted" title="AUTO_INCREMENT — database fills this with the next number on insert. Use on an integer primary key.">AI</span>
+            <span class="text-center cursor-help underline decoration-dotted" title="Allow NULL — column may be left empty. Unchecked = NOT NULL (value required).">Null</span>
+          </div>
+        </div>
+        <div id="colRows" class="space-y-sm"></div>
+        <button type="button" id="btnAddCol" class="mt-sm flex items-center gap-sm px-md py-sm rounded-lg border border-dashed border-outline-variant hover:bg-surface-container-high transition-colors text-on-surface-variant w-full justify-center">
+          <span class="material-symbols-outlined text-[18px]">add</span> Add column
+        </button>
+      </div>
+      <div id="newTableMsg" class="hidden text-sm rounded-lg px-sm py-sm"></div>
+    </div>
+    <div class="flex items-center justify-end gap-sm px-lg py-md border-t border-outline-variant">
+      <button type="button" id="newTableCancel" class="px-md py-sm rounded-lg hover:bg-surface-container-high text-on-surface-variant">Cancel</button>
+      <button type="submit" class="px-md py-sm rounded-lg bg-primary text-on-primary font-semibold hover:opacity-90 transition-opacity">Create table</button>
+    </div>
+  </form>
 </div>
 
 <script src="assets/strata.js" defer></script>

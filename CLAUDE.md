@@ -48,6 +48,8 @@ Herd MySQL on `127.0.0.1:3306`, user `root`, no password. `wp` DB has real table
 | action | params | returns |
 |---|---|---|
 | `databases` | — | `{databases:[]}` |
+| `create_database` | `name` | `{ok,name}` (utf8mb4 / unicode_ci) |
+| `create_table` | `db,name,columns[{name,type,nullable,auto_increment,pk}]` | `{ok,db,name}` (InnoDB / utf8mb4) |
 | `tables` | `db` | `{tables:[{name,rows,type,engine,size}]}` |
 | `columns` | `db,table` | `{columns:[{name,type,key,nullable,default,extra}]}` |
 | `rows` | `db,table,page,per_page,sort,dir,search` | `{columns,rows,total,page,pages,…}` |
@@ -67,7 +69,7 @@ All planned API actions implemented.
 
 ## Conventions / guardrails
 
-- **SQL safety:** db/table/column identifiers are NEVER trusted from input — validate against `information_schema` before backtick-interpolating (`assertDb`/`assertTable`/`columnsOf` in api.php). Values always use bound params.
+- **SQL safety:** db/table/column identifiers are NEVER trusted from input — validate against `information_schema` before backtick-interpolating (`assertDb`/`assertTable`/`columnsOf` in api.php). Values always use bound params. For DDL on names that don't exist yet (`create_database`/`create_table`), `assertIdent` whitelists `[A-Za-z0-9_$]{1,64}`; column types are regex-checked, then everything is still backtick-quoted via `qid`.
 - **Errors:** every API error returns JSON `{error}` + HTTP status. UI must show inline, never a blank grid.
 - **Creds:** DB creds are sent per-request from the client (localStorage profiles) in the JSON body `conn`. `api.php` is stateless — no hardcoded creds. Passwords persist only when "Remember password" is on; otherwise kept in-memory and re-prompted on reload.
 - **Theming (Phase 1):** target is CSS-variable tokens with Light/Dark/System modes. Current index.html is dark-only hardcoded — don't add more hardcoded colors; migrate to tokens.
@@ -81,4 +83,4 @@ All planned API actions implemented.
 
 ## Status
 
-Phase 0 (Explorer) ✅. Phase 1 (Strata rebrand + theming) ✅. Phase 2 (Connection Settings — localStorage profiles, stateless creds) ✅. Phase 3 (Row CRUD) ✅. Phase 4 (SQL Editor) ✅. Phase 5 (Dashboard) ✅. Phase 6 (Polish — FK links, column show/hide, full CSV export, shortcuts) ✅ (Tailwind CLI build deferred).
+Phase 0 (Explorer) ✅. Phase 1 (Strata rebrand + theming) ✅. Phase 2 (Connection Settings — localStorage profiles, stateless creds) ✅. Phase 3 (Row CRUD) ✅. Phase 4 (SQL Editor) ✅. Phase 5 (Dashboard) ✅. Phase 6 (Polish — FK links, column show/hide, full CSV export, shortcuts) ✅ (Tailwind CLI build deferred). Phase 7 (Schema ops) 🚧 — create database + create table done; drop/alter pending.

@@ -267,6 +267,101 @@ $('dbSelect').onchange = (e) => {
   if (!$('viewDashboard').classList.contains('hidden')) loadStats(); // refresh Dashboard if open
   loadTables();
 };
+// ---- create database / table ---------------------------------------------
+
+function bannerMsg(id, text, kind) {
+  const m = $(id);
+  if (!text) { m.classList.add('hidden'); return; }
+  const tone = kind === 'error'
+    ? 'bg-red-950/30 text-red-400 border border-red-900/50'
+    : 'bg-green-950/30 text-green-400 border border-green-900/50';
+  m.className = `text-sm rounded-lg px-sm py-sm ${tone}`;
+  m.textContent = text;
+}
+
+// -- new database
+$('btnNewDb').onclick = () => {
+  $('newDbForm').reset();
+  bannerMsg('newDbMsg', '');
+  $('newDbModal').classList.remove('hidden');
+  $('newDbForm').name.focus();
+};
+function closeNewDb() { $('newDbModal').classList.add('hidden'); }
+$('newDbClose').onclick = closeNewDb;
+$('newDbCancel').onclick = closeNewDb;
+$('newDbModal').addEventListener('click', (e) => { if (e.target.id === 'newDbModal') closeNewDb(); });
+$('newDbForm').onsubmit = async (e) => {
+  e.preventDefault();
+  const name = $('newDbForm').name.value.trim();
+  try {
+    await api('create_database', { name });
+    closeNewDb();
+    await loadDatabases();          // refresh list
+    $('dbSelect').value = name; $('dbSelect').onchange({ target: { value: name } });
+    flash(`Database "${name}" created`);
+  } catch (err) { bannerMsg('newDbMsg', err.message, 'error'); }
+};
+
+// -- new table
+const COL_TYPES = ['INT', 'BIGINT', 'TINYINT', 'DECIMAL(10,2)', 'VARCHAR(255)', 'TEXT', 'LONGTEXT',
+  'DATE', 'DATETIME', 'TIMESTAMP', 'BOOLEAN', 'JSON', 'CHAR(36)', 'FLOAT', 'DOUBLE'];
+
+function addColRow(preset) {
+  const p = preset || {};
+  const row = document.createElement('div');
+  row.className = 'colRow grid grid-cols-[1fr_1fr_44px_44px_36px_44px] gap-sm items-center';
+  row.innerHTML = `
+    <input class="cName bg-surface-container-lowest border border-outline-variant rounded-lg px-sm py-xs text-sm text-on-surface focus:ring-primary focus:border-primary" placeholder="column" value="${esc(p.name || '')}"/>
+    <input class="cType bg-surface-container-lowest border border-outline-variant rounded-lg px-sm py-xs text-sm text-on-surface focus:ring-primary focus:border-primary" list="colTypeList" placeholder="VARCHAR(255)" value="${esc(p.type || '')}"/>
+    <input class="cPk justify-self-center rounded border-outline-variant text-primary focus:ring-primary" type="checkbox" title="Primary Key — uniquely identifies each row. Implies NOT NULL; used for edit & delete." ${p.pk ? 'checked' : ''}/>
+    <input class="cAi justify-self-center rounded border-outline-variant text-primary focus:ring-primary" type="checkbox" title="AUTO_INCREMENT — database fills this with the next number on insert. Use on an integer primary key." ${p.ai ? 'checked' : ''}/>
+    <input class="cNull justify-self-center rounded border-outline-variant text-primary focus:ring-primary" type="checkbox" title="Allow NULL — column may be left empty. Unchecked = NOT NULL (value required)." ${p.nullable ? 'checked' : ''}/>
+    <button type="button" class="cDel flex items-center justify-center w-7 h-7 rounded-lg hover:bg-surface-container-high text-on-surface-variant"><span class="material-symbols-outlined text-[18px]">close</span></button>`;
+  row.querySelector('.cDel').onclick = () => row.remove();
+  $('colRows').appendChild(row);
+}
+
+$('btnNewTable').onclick = () => {
+  if (!state.db) { flash('Pick a database first'); return; }
+  $('newTableForm').reset();
+  bannerMsg('newTableMsg', '');
+  $('newTableDb').textContent = `· ${state.db}`;
+  if (!$('colTypeList')) {
+    const dl = document.createElement('datalist');
+    dl.id = 'colTypeList';
+    dl.innerHTML = COL_TYPES.map(t => `<option value="${t}"></option>`).join('');
+    document.body.appendChild(dl);
+  }
+  $('colRows').innerHTML = '';
+  addColRow({ name: 'id', type: 'INT', pk: true, ai: true }); // sensible default PK
+  addColRow({ name: '', type: 'VARCHAR(255)' });
+  $('newTableModal').classList.remove('hidden');
+};
+function closeNewTable() { $('newTableModal').classList.add('hidden'); }
+$('newTableClose').onclick = closeNewTable;
+$('newTableCancel').onclick = closeNewTable;
+$('newTableModal').addEventListener('click', (e) => { if (e.target.id === 'newTableModal') closeNewTable(); });
+$('btnAddCol').onclick = () => addColRow();
+$('newTableForm').onsubmit = async (e) => {
+  e.preventDefault();
+  const name = $('newTableForm').name.value.trim();
+  const columns = [...$('colRows').querySelectorAll('.colRow')].map(r => ({
+    name: r.querySelector('.cName').value.trim(),
+    type: r.querySelector('.cType').value.trim(),
+    pk: r.querySelector('.cPk').checked,
+    auto_increment: r.querySelector('.cAi').checked,
+    nullable: r.querySelector('.cNull').checked,
+  })).filter(c => c.name && c.type);
+  if (!columns.length) { bannerMsg('newTableMsg', 'Add at least one column.', 'error'); return; }
+  try {
+    await api('create_table', { db: state.db, name, columns });
+    closeNewTable();
+    await loadTables();
+    selectTable(name);
+    flash(`Table "${name}" created`);
+  } catch (err) { bannerMsg('newTableMsg', err.message, 'error'); }
+};
+
 $('tableFilter').oninput = renderTableList;
 $('perPage').onchange = (e) => { state.perPage = +e.target.value; state.page = 1; loadRows(); };
 $('prevPage').onclick = () => { if (state.page > 1) { state.page--; loadRows(); } };
