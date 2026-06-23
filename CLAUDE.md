@@ -6,8 +6,8 @@ Project context for Claude Code. Read this first.
 
 **Strata** — a modern, self-hosted MySQL admin client. Custom UI over a thin PHP+PDO JSON API. A full UI replacement for Adminer (not a theme). Vanilla JS + Tailwind front-end, no framework.
 
-- Product spec: [PRD.md](PRD.md)
-- Phased build plan: [PLAN.md](PLAN.md) — **check current phase before starting work**
+- Product spec: [docs/PRD.md](docs/PRD.md)
+- Phased build plan: [docs/PLAN.md](docs/PLAN.md) — **check current phase before starting work**
 - User: linkon@wpdeveloper.com
 
 ## Stack & layout
@@ -17,11 +17,13 @@ Project context for Claude Code. Read this first.
 - All app state (connection profiles, theme, history) lives in browser **localStorage** — no server config file.
 
 ```
-index.html     app shell + Explorer screen (inline JS for now)
-api.php         stateless JSON gateway (PDO)
-PRD.md PLAN.md  docs — source of truth for scope/sequencing
-legacy/         old Adminer build (gitignored, reference only)
-ui/             design mockups (gitignored, reference only)
+index.html         app shell + Explorer screen (inline JS for now)
+api.php            stateless JSON gateway (PDO)
+assets/            front-end CSS (strata.css) + JS modules as they grow
+docs/              PRD.md, PLAN.md — source of truth for scope/sequencing
+README.md          install / run / security
+legacy/            old Adminer build (gitignored, reference only)
+ui/                design mockups (gitignored, reference only)
 ```
 
 Served from repo **root**. App at `/`, API at `/api.php`.
@@ -68,4 +70,4 @@ Planned (see PLAN.md): `test_connection`, `row_get`, `row_save`, `row_delete`, `
 
 ## Status
 
-Phase 0 (Explorer foundation) ✅ done. Phase 1 (rebrand → Strata + Light/Dark/System theming) ✅ done — tokens in `assets/strata.css`, theme switcher in top bar. Next: Phase 2 (Connection Settings) in [PLAN.md](PLAN.md).
+Phase 0 (Explorer foundation) ✅ done. Phase 1 (rebrand → Strata + Light/Dark/System theming) ✅ done — tokens in `assets/strata.css`, theme switcher in top bar. Next: Phase 2 (Connection Settings) in [docs/PLAN.md](docs/PLAN.md).

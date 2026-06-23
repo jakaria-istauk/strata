@@ -2,14 +2,13 @@
 
 A modern, self-hosted database admin client — custom UI over a thin PHP+PDO JSON API. A full UI replacement for Adminer, not a theme.
 
-> Status: early. Phase 0 (Explorer) working. See [PLAN.md](PLAN.md) and [PRD.md](PRD.md).
+> Status: early. Phase 0 (Explorer) working. See [docs/PLAN.md](docs/PLAN.md) and [docs/PRD.md](docs/PRD.md).
 
 ## Run
 
 Requires PHP 8.x with `pdo_mysql` and a reachable MySQL/MariaDB.
 
 ```bash
-cd app
 php -S 127.0.0.1:8899
 # open http://127.0.0.1:8899/
 ```
@@ -24,6 +23,6 @@ Connection details (host, port, user, password) are configured in the in-app Set
 
 ## Docs
 
-- [PRD.md](PRD.md) — product requirements
-- [PLAN.md](PLAN.md) — phased implementation plan
+- [docs/PRD.md](docs/PRD.md) — product requirements
+- [docs/PLAN.md](docs/PLAN.md) — phased implementation plan
 - `ui/` — design mockups (reference)
