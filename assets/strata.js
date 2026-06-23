@@ -143,6 +143,12 @@ async function loadRows() {
   } catch (e) { renderEmpty('Error: ' + e.message); return; }
   const ms = Math.round(performance.now() - t0);
 
+  // primary-key columns drive selection / edit / delete
+  state.columns = data.columns;
+  state.pkCols = data.columns.filter(c => c.key === 'PRI').map(c => c.name);
+  state.selected = new Map(); // rowKey -> pk object
+  updateBulkBar();
+
   // context header
   $('ctxTable').textContent = data.table;
   $('ctxSchema').textContent = `SCHEMA: ${state.db.toUpperCase()}`;
@@ -153,7 +159,11 @@ async function loadRows() {
   $('pageInfo').textContent = `${from}-${to} of ${data.total.toLocaleString()}`;
 
   // head
-  $('gridHead').innerHTML = `<tr class="bg-surface-container-highest border-b border-outline-variant">${
+  const hasPk = state.pkCols.length > 0;
+  const selTh = hasPk
+    ? `<th class="px-md py-sm w-10"><input id="selAll" type="checkbox" class="rounded border-outline-variant text-primary focus:ring-primary"/></th>`
+    : '';
+  $('gridHead').innerHTML = `<tr class="bg-surface-container-highest border-b border-outline-variant">${selTh}${
     data.columns.map(c => {
       const sorted = state.sort === c.name;
       const arrow = sorted ? (state.dir === 'ASC' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more';
@@ -163,6 +173,7 @@ async function loadRows() {
           <span class="material-symbols-outlined text-[14px] ${sorted ? 'opacity-100 text-primary' : 'opacity-40'}">${arrow}</span></div></th>`;
     }).join('')
   }</tr>`;
+  if (hasPk) $('selAll').onchange = (e) => toggleSelectAll(e.target.checked);
   $('gridHead').querySelectorAll('th').forEach(th =>
     th.onclick = () => {
       const c = th.dataset.col;
@@ -173,11 +184,63 @@ async function loadRows() {
 
   // body
   if (!data.rows.length) { renderEmpty(state.search ? 'No rows match search' : 'Table is empty'); return; }
-  $('gridBody').innerHTML = data.rows.map((r, i) =>
-    `<tr class="border-b border-outline-variant hover:bg-surface-container-highest/50 transition-colors ${i % 2 ? 'bg-surface-container-low/30' : ''}">${
+  $('gridBody').innerHTML = data.rows.map((r, i) => {
+    const selCell = hasPk
+      ? `<td class="px-md py-xs"><input type="checkbox" data-sel="${i}" class="rowSel rounded border-outline-variant text-primary focus:ring-primary"/></td>`
+      : '';
+    return `<tr data-row="${i}" class="group border-b border-outline-variant hover:bg-surface-container-highest/50 transition-colors cursor-pointer ${i % 2 ? 'bg-surface-container-low/30' : ''}">${selCell}${
       data.columns.map(c => `<td class="px-md py-xs">${cell(c, r[c.name])}</td>`).join('')
-    }</tr>`).join('');
+    }</tr>`;
+  }).join('');
   state._lastData = data;
+  // row click → open detail drawer (ignore clicks on the checkbox cell)
+  $('gridBody').querySelectorAll('tr').forEach(tr => {
+    tr.onclick = (e) => {
+      if (e.target.closest('input[type=checkbox]')) return;
+      openRowDrawer('view', data.rows[+tr.dataset.row]);
+    };
+  });
+  if (hasPk) $('gridBody').querySelectorAll('.rowSel').forEach(cb => {
+    cb.onchange = () => {
+      const row = data.rows[+cb.dataset.sel];
+      const k = rowKey(row);
+      if (cb.checked) state.selected.set(k, rowPk(row));
+      else state.selected.delete(k);
+      updateBulkBar();
+    };
+  });
+}
+
+// ---- selection helpers (Phase 3) -----------------------------------------
+function rowPk(row) { const o = {}; for (const c of state.pkCols) o[c] = row[c]; return o; }
+function rowKey(row) { return state.pkCols.map(c => row[c]).join('\x1f'); }
+
+function toggleSelectAll(on) {
+  const d = state._lastData; if (!d) return;
+  state.selected = new Map();
+  if (on) d.rows.forEach(r => state.selected.set(rowKey(r), rowPk(r)));
+  $('gridBody').querySelectorAll('.rowSel').forEach(cb => cb.checked = on);
+  updateBulkBar();
+}
+
+function updateBulkBar() {
+  const n = state.selected ? state.selected.size : 0;
+  const bar = $('bulkBar');
+  bar.classList.toggle('hidden', n === 0);
+  bar.classList.toggle('flex', n > 0);
+  if (n) $('bulkCount').textContent = `${n} selected`;
+}
+
+async function bulkDelete() {
+  const pks = [...state.selected.values()];
+  if (!pks.length) return;
+  if (!confirm(`Delete ${pks.length} row(s)? This cannot be undone.`)) return;
+  try {
+    const res = await api('row_delete', { db: state.db, table: state.table, pks });
+    state.selected = new Map();
+    await loadRows();
+    flash(`Deleted ${res.deleted} row(s)`);
+  } catch (e) { alert('Delete failed: ' + e.message); }
 }
 
 function exportCsv() {
@@ -202,6 +265,157 @@ $('btnRefresh').onclick = loadRows;
 $('btnExport').onclick = exportCsv;
 let searchTimer;
 $('rowSearch').oninput = (e) => { clearTimeout(searchTimer); searchTimer = setTimeout(() => { state.search = e.target.value.trim(); state.page = 1; loadRows(); }, 300); };
+
+// ---- row drawer / CRUD (Phase 3) -----------------------------------------
+
+function flash(msg) {
+  let t = $('toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.className = 'fixed bottom-md right-md z-[200] px-md py-sm rounded-lg bg-surface-container-highest border border-outline-variant text-on-surface shadow-2xl text-sm transition-opacity';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.style.opacity = '0'; }, 2200);
+}
+
+const NUMERIC = /^(tinyint|smallint|mediumint|int|bigint|decimal|float|double|year)$/;
+const LONGTEXT = /^(text|mediumtext|longtext|tinytext|blob|mediumblob|longblob|json)$/;
+
+function drawerMsg(text, kind) {
+  const m = $('drawerMsg');
+  if (!text) { m.classList.add('hidden'); return; }
+  const tone = kind === 'error'
+    ? 'bg-red-950/30 text-red-400 border border-red-900/50'
+    : 'bg-green-950/30 text-green-400 border border-green-900/50';
+  m.className = `mx-lg mb-sm text-sm rounded-lg px-sm py-sm ${tone}`;
+  m.textContent = text;
+}
+
+function openRowDrawer(mode, row) {
+  if (!state.columns) return;
+  state.drawer = { mode, row: row || {}, table: state.table };
+  $('rowDrawer').classList.remove('hidden');
+  renderDrawer();
+}
+function closeRowDrawer() { $('rowDrawer').classList.add('hidden'); }
+
+function renderDrawer() {
+  const { mode, row } = state.drawer;
+  const editable = mode !== 'view';
+  $('drawerTitle').textContent = mode === 'new' ? `New row · ${state.table}` : state.table;
+  $('drawerMode').textContent = mode.toUpperCase();
+  drawerMsg('');
+
+  $('drawerBody').innerHTML = state.columns.map(c => {
+    const val = mode === 'new' ? (c.default ?? '') : row[c.name];
+    // Only reflect a real NULL (view/edit). New rows start non-null; use the toggle for NULL.
+    const isNull = mode !== 'new' && row[c.name] === null;
+    const auto = String(c.extra).includes('auto_increment');
+    const pk = c.key === 'PRI';
+    // lock auto-increment always; lock PK while editing an existing row
+    const locked = !editable || auto || (pk && mode === 'edit');
+    const long = LONGTEXT.test(c.type);
+    const inputType = NUMERIC.test(c.type) ? 'number' : 'text';
+    const common = `data-col="${esc(c.name)}" class="drawerInput w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-sm py-sm text-on-surface font-mono text-[13px] focus:ring-primary focus:border-primary disabled:opacity-50" ${locked ? 'disabled' : ''}`;
+    const ctrl = long
+      ? `<textarea ${common} rows="3" placeholder="${auto ? '(auto)' : ''}">${isNull ? '' : esc(val)}</textarea>`
+      : `<input ${common} type="${inputType}" value="${isNull ? '' : esc(val)}" placeholder="${auto ? '(auto)' : ''}"/>`;
+    const keyIcon = pk ? '<span class="material-symbols-outlined text-[13px] text-tertiary">key</span>' : '';
+    const nullBtn = (c.nullable === 'YES' && editable && !auto)
+      ? `<button type="button" data-null="${esc(c.name)}" class="nullToggle text-[10px] px-sm py-[2px] rounded border ${isNull ? 'border-primary text-primary' : 'border-outline-variant text-on-surface-variant'}">NULL</button>`
+      : '';
+    return `<div class="field" data-field="${esc(c.name)}" data-isnull="${isNull ? '1' : '0'}">
+      <div class="flex items-center justify-between mb-xs">
+        <label class="flex items-center gap-xs text-xs uppercase tracking-wider text-on-surface-variant opacity-80">${keyIcon}${esc(c.name)}
+          <span class="opacity-50 lowercase font-mono">${esc(c.type)}</span></label>
+        ${nullBtn}
+      </div>${ctrl}</div>`;
+  }).join('');
+
+  // NULL toggles
+  $('drawerBody').querySelectorAll('.nullToggle').forEach(btn => {
+    btn.onclick = () => {
+      const field = btn.closest('.field');
+      const on = field.dataset.isnull !== '1';
+      field.dataset.isnull = on ? '1' : '0';
+      const input = field.querySelector('.drawerInput');
+      input.disabled = on;
+      if (on) input.value = '';
+      btn.classList.toggle('border-primary', on);
+      btn.classList.toggle('text-primary', on);
+      btn.classList.toggle('border-outline-variant', !on);
+      btn.classList.toggle('text-on-surface-variant', !on);
+    };
+  });
+
+  // typing clears a NULL flag
+  $('drawerBody').querySelectorAll('.drawerInput').forEach(input => {
+    input.oninput = () => {
+      const field = input.closest('.field');
+      if (field.dataset.isnull === '1') {
+        field.dataset.isnull = '0';
+        const btn = field.querySelector('.nullToggle');
+        if (btn) { btn.classList.remove('border-primary', 'text-primary'); btn.classList.add('border-outline-variant', 'text-on-surface-variant'); }
+      }
+    };
+  });
+
+  // footer buttons by mode + PK availability
+  const hasPk = state.pkCols && state.pkCols.length > 0;
+  $('drawerEdit').classList.toggle('hidden', mode !== 'view' || !hasPk);
+  $('drawerSave').classList.toggle('hidden', mode === 'view');
+  $('drawerDelete').classList.toggle('hidden', mode === 'new' || !hasPk);
+  $('drawerCancel').textContent = mode === 'view' ? 'Close' : 'Cancel';
+}
+
+function collectDrawerValues() {
+  const out = {};
+  $('drawerBody').querySelectorAll('.field').forEach(field => {
+    const col = field.dataset.field;
+    const input = field.querySelector('.drawerInput');
+    if (input.disabled && field.dataset.isnull !== '1') return; // locked (auto/pk) → skip
+    out[col] = field.dataset.isnull === '1' ? null : input.value;
+  });
+  return out;
+}
+
+async function saveDrawer() {
+  const { mode, row } = state.drawer;
+  const values = collectDrawerValues();
+  const params = { db: state.db, table: state.table, values };
+  if (mode === 'edit') params.pk = rowPk(row);
+  try {
+    const res = await api('row_save', params);
+    closeRowDrawer();
+    await loadRows();
+    flash(mode === 'edit' ? `Saved (${res.affected} changed)` : `Inserted row #${res.insertId}`);
+  } catch (e) { drawerMsg(e.message, 'error'); }
+}
+
+async function deleteDrawerRow() {
+  const { row } = state.drawer;
+  if (!confirm('Delete this row? This cannot be undone.')) return;
+  try {
+    await api('row_delete', { db: state.db, table: state.table, pks: [rowPk(row)] });
+    closeRowDrawer();
+    await loadRows();
+    flash('Row deleted');
+  } catch (e) { drawerMsg(e.message, 'error'); }
+}
+
+// drawer wiring
+$('btnNewRow').onclick = () => { if (state.table) openRowDrawer('new', null); };
+$('drawerClose').onclick = closeRowDrawer;
+$('rowDrawerScrim').onclick = closeRowDrawer;
+$('drawerCancel').onclick = closeRowDrawer;
+$('drawerEdit').onclick = () => { state.drawer.mode = 'edit'; renderDrawer(); };
+$('drawerSave').onclick = saveDrawer;
+$('drawerDelete').onclick = deleteDrawerRow;
+$('btnBulkDelete').onclick = bulkDelete;
 
 // ---- connection UI (Phase 2) ---------------------------------------------
 

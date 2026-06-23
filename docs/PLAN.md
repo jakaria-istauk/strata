@@ -66,14 +66,14 @@ Creds move out of `api.php` constants → sent per-request from client. `api.php
 - **Verified (Chrome):** first-run, test, save, 2nd profile, switch, wrong creds → clean inline error, password re-prompt on reload.
 - **Security note in README:** plaintext localStorage, localhost binding recommended (already documented).
 
-## Phase 3 — Row CRUD
+## Phase 3 — Row CRUD ✅ DONE
 **Goal:** safe data editing.
-- [ ] `row_get` (by PK), `row_save` (insert/update), `row_delete`.
-- [ ] Row detail drawer (read) → Edit mode.
-- [ ] Type-aware inputs; NULL toggle; PK/auto-increment handling.
-- [ ] New Record form. Delete with confirm. Bulk delete from checkboxes.
-- [ ] Optimistic refresh / error rollback.
-- **Verify:** insert/edit/delete a row in a scratch table; PK-less table guarded.
+- [x] `row_get` (by PK), `row_save` (insert/update), `row_delete` (bulk, transactional).
+- [x] Row detail drawer (read) → Edit mode.
+- [x] Type-aware inputs (number/textarea); NULL toggle; PK/auto-increment locked.
+- [x] New Record form. Delete with confirm. Bulk delete from row checkboxes.
+- [x] Refresh after save/delete; errors shown inline in the drawer.
+- **Verified (Chrome):** insert/edit/NULL/single-delete/bulk-delete on a scratch table; PK-less table is view-only (no checkboxes, no edit/delete).
 
 ## Phase 4 — SQL Editor (Query Runner)
 **Goal:** run arbitrary SQL.

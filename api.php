@@ -220,6 +220,110 @@ switch ($action) {
         ]);
     }
 
+    case 'row_get': {
+        $base  = pdo();
+        $db    = assertDb($base, (string)($IN['db'] ?? ''));
+        $table = assertTable($base, $db, (string)($IN['table'] ?? ''));
+        $cols  = columnsOf($base, $db, $table);
+        $colMap = []; foreach ($cols as $c) $colMap[$c['name']] = $c;
+
+        $pk = $IN['pk'] ?? null;
+        if (!is_array($pk) || !$pk) fail(400, 'Missing pk');
+        $where = []; $params = [];
+        foreach ($pk as $k => $v) {
+            if (!isset($colMap[$k])) fail(400, "Unknown column: $k");
+            $where[] = qid($k) . ' = ?'; $params[] = $v;
+        }
+        $conn = pdo($db);
+        $stmt = $conn->prepare('SELECT * FROM ' . qid($table) . ' WHERE ' . implode(' AND ', $where) . ' LIMIT 1');
+        $stmt->execute($params);
+        $row = $stmt->fetch();
+        if ($row === false) fail(404, 'Row not found');
+        ok(['db' => $db, 'table' => $table, 'columns' => $cols, 'row' => $row]);
+    }
+
+    case 'row_save': {
+        $base  = pdo();
+        $db    = assertDb($base, (string)($IN['db'] ?? ''));
+        $table = assertTable($base, $db, (string)($IN['table'] ?? ''));
+        $cols  = columnsOf($base, $db, $table);
+        $colMap = []; foreach ($cols as $c) $colMap[$c['name']] = $c;
+
+        $values = $IN['values'] ?? null;
+        if (!is_array($values)) fail(400, 'Missing values');
+        // keep only real columns
+        $data = [];
+        foreach ($values as $k => $v) if (isset($colMap[$k])) $data[$k] = $v;
+
+        $pk   = $IN['pk'] ?? null; // present => UPDATE, absent => INSERT
+        $conn = pdo($db);
+
+        if (is_array($pk) && $pk) {
+            $set = []; $params = [];
+            foreach ($data as $k => $v) { $set[] = qid($k) . ' = ?'; $params[] = $v; }
+            if (!$set) fail(400, 'No columns to update');
+            $where = [];
+            foreach ($pk as $k => $v) {
+                if (!isset($colMap[$k])) fail(400, "Unknown column: $k");
+                $where[] = qid($k) . ' = ?'; $params[] = $v;
+            }
+            $sql = 'UPDATE ' . qid($table) . ' SET ' . implode(', ', $set)
+                 . ' WHERE ' . implode(' AND ', $where);
+            try {
+                $stmt = $conn->prepare($sql); $stmt->execute($params);
+            } catch (PDOException $e) { fail(400, $e->getMessage()); }
+            ok(['ok' => true, 'mode' => 'update', 'affected' => $stmt->rowCount()]);
+        }
+
+        // INSERT — drop empty auto_increment columns so MySQL assigns them
+        $insCols = []; $params = [];
+        foreach ($data as $k => $v) {
+            $c = $colMap[$k];
+            if (str_contains($c['extra'], 'auto_increment') && ($v === null || $v === '')) continue;
+            $insCols[] = $k; $params[] = $v;
+        }
+        if (!$insCols) fail(400, 'No values to insert');
+        $ph  = implode(', ', array_fill(0, count($insCols), '?'));
+        $sql = 'INSERT INTO ' . qid($table) . ' (' . implode(', ', array_map('qid', $insCols))
+             . ') VALUES (' . $ph . ')';
+        try {
+            $stmt = $conn->prepare($sql); $stmt->execute($params);
+        } catch (PDOException $e) { fail(400, $e->getMessage()); }
+        ok(['ok' => true, 'mode' => 'insert', 'insertId' => $conn->lastInsertId()]);
+    }
+
+    case 'row_delete': {
+        $base  = pdo();
+        $db    = assertDb($base, (string)($IN['db'] ?? ''));
+        $table = assertTable($base, $db, (string)($IN['table'] ?? ''));
+        $cols  = columnsOf($base, $db, $table);
+        $colMap = []; foreach ($cols as $c) $colMap[$c['name']] = $c;
+
+        $pks = $IN['pks'] ?? null; // array of pk objects
+        if (!is_array($pks) || !$pks) fail(400, 'Missing pks');
+        $conn = pdo($db);
+        $conn->beginTransaction();
+        $deleted = 0;
+        try {
+            foreach ($pks as $pk) {
+                if (!is_array($pk) || !$pk) continue;
+                $where = []; $params = [];
+                foreach ($pk as $k => $v) {
+                    if (!isset($colMap[$k])) throw new RuntimeException("Unknown column: $k");
+                    $where[] = qid($k) . ' = ?'; $params[] = $v;
+                }
+                $stmt = $conn->prepare('DELETE FROM ' . qid($table) . ' WHERE ' . implode(' AND ', $where) . ' LIMIT 1');
+                $stmt->execute($params);
+                $deleted += $stmt->rowCount();
+            }
+            $conn->commit();
+        } catch (Throwable $e) {
+            $conn->rollBack();
+            fail(400, $e->getMessage());
+        }
+        ok(['ok' => true, 'deleted' => $deleted]);
+    }
+
     default:
         fail(400, 'Unknown action: ' . $action);
 }

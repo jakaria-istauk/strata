@@ -52,12 +52,15 @@ Herd MySQL on `127.0.0.1:3306`, user `root`, no password. `wp` DB has real table
 | `columns` | `db,table` | `{columns:[{name,type,key,nullable,default,extra}]}` |
 | `rows` | `db,table,page,per_page,sort,dir,search` | `{columns,rows,total,page,pages,…}` |
 | `test_connection` | (creds only) | `{ok,version,host}` |
+| `row_get` | `db,table,pk{}` | `{columns,row}` |
+| `row_save` | `db,table,values{}[,pk{}]` | `{ok,mode,affected\|insertId}` (pk present ⇒ update, absent ⇒ insert) |
+| `row_delete` | `db,table,pks[{}]` | `{ok,deleted}` (transactional) |
 
 Every request is **POST** with a JSON body `{conn:{host,port,user,pass,db?}, ...params}`.
 `conn` carries the active profile's creds (api.php reads them there; no hardcoded creds).
 Action stays in the query string. Params may be in the query string or the body.
 
-Planned (see PLAN.md): `row_get`, `row_save`, `row_delete`, `query`.
+Planned (see PLAN.md): `query`.
 
 ## Conventions / guardrails
 
@@ -75,4 +78,4 @@ Planned (see PLAN.md): `row_get`, `row_save`, `row_delete`, `query`.
 
 ## Status
 
-Phase 0 (Explorer) ✅. Phase 1 (Strata rebrand + theming) ✅. Phase 2 (Connection Settings — localStorage profiles, stateless creds) ✅. Next: Phase 3 (Row CRUD) in [docs/PLAN.md](docs/PLAN.md).
+Phase 0 (Explorer) ✅. Phase 1 (Strata rebrand + theming) ✅. Phase 2 (Connection Settings — localStorage profiles, stateless creds) ✅. Phase 3 (Row CRUD — drawer, insert/edit/delete, bulk) ✅. Next: Phase 4 (SQL Editor) in [docs/PLAN.md](docs/PLAN.md).
