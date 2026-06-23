@@ -5,12 +5,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Loader2, X, Plus, Trash2 } from 'lucide-react';
+import { Search, Loader2, X, Plus, Trash2, Table2 } from 'lucide-react';
 import { useRows } from '../hooks/useRows';
 import Grid from '../components/Grid';
 import Pagination from '../components/Pagination';
 import ColumnToggle from '../components/ColumnToggle';
 import RowDrawer from '../components/RowDrawer';
+import StructModal from '../components/StructModal';
 import ConfirmDanger from '../components/ConfirmDanger';
 import { useToast } from '../components/Toast';
 import { api, ApiError } from '../api';
@@ -51,6 +52,7 @@ export default function TableView() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [drawer, setDrawer] = useState<Drawer>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [showStruct, setShowStruct] = useState(false);
 
   const { data, isFetching, error } = useRows(db, table, {
     page,
@@ -192,6 +194,13 @@ export default function TableView() {
           <ColumnToggle columns={data.columns} hidden={hidden} onChange={setHidden} />
         )}
         <button
+          onClick={() => setShowStruct(true)}
+          disabled={!data}
+          className="flex items-center gap-sm rounded-lg border border-outline-variant px-md py-sm text-sm text-on-surface hover:bg-surface-container-high disabled:opacity-40"
+        >
+          <Table2 size={14} /> Structure
+        </button>
+        <button
           onClick={() => setDrawer({ mode: 'new' })}
           disabled={!data}
           className="flex items-center gap-sm rounded-lg bg-primary px-md py-sm text-sm font-medium text-on-primary hover:opacity-90 disabled:opacity-40"
@@ -253,6 +262,10 @@ export default function TableView() {
           onFormatsChange={changeFormats}
           onClose={() => setDrawer(null)}
         />
+      )}
+
+      {showStruct && data && db && table && (
+        <StructModal db={db} table={table} columns={data.columns} onClose={() => setShowStruct(false)} />
       )}
 
       {confirmDelete && (

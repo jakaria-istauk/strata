@@ -94,7 +94,7 @@ api.php  (PHP + PDO, stateless — unchanged)
 
 ## Phase 7 — Schema ops
 - [ ] NewDbModal, NewTableModal (column builder).
-- [ ] StructModal: alter table (rename/retype/null/AI, add & drop columns) + per-column formats.
+- [x] StructModal: alter table (rename/retype/null/AI, add & drop columns), searchable type picker — landed early. _(per-column formats live in the row drawer.)_
 - [ ] Drop database / drop table (type-to-confirm).
 
 ## Phase 8 — Cutover

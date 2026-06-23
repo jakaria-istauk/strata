@@ -49,6 +49,22 @@ export default {
         body: ['Inter Variable', 'sans-serif'],
         mono: ['JetBrains Mono Variable', 'monospace'],
       },
+      keyframes: {
+        'fade-in': { from: { opacity: '0' }, to: { opacity: '1' } },
+        'slide-in-right': {
+          from: { transform: 'translateX(100%)' },
+          to: { transform: 'translateX(0)' },
+        },
+        'pop-in': {
+          from: { opacity: '0', transform: 'scale(0.96)' },
+          to: { opacity: '1', transform: 'scale(1)' },
+        },
+      },
+      animation: {
+        'fade-in': 'fade-in 0.15s ease-out',
+        'slide-in-right': 'slide-in-right 0.2s ease-out',
+        'pop-in': 'pop-in 0.15s ease-out',
+      },
     },
   },
   plugins: [],

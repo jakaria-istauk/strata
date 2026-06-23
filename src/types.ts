@@ -27,10 +27,14 @@ export interface Column {
   /** Full column type, e.g. `varchar(255)`. */
   coltype: string;
   key: string;
-  nullable: boolean;
+  /** From `IS_NULLABLE` — the string `'YES'` or `'NO'`. Use `isNullable()`. */
+  nullable: string;
   default: string | null;
   extra: string;
 }
+
+/** True when a column accepts NULL (api.php sends IS_NULLABLE as 'YES'/'NO'). */
+export const isNullable = (c: Column): boolean => c.nullable === 'YES';
 
 export type Row = Record<string, string | null>;
 

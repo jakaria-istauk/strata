@@ -6,7 +6,16 @@ import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { X, Loader2, KeyRound, Save } from 'lucide-react';
 import { api, ApiError } from '../api';
-import type { Column, Formats, HashAlgo, Pk, Row, RowGetResult, RowSaveResult } from '../types';
+import {
+  isNullable,
+  type Column,
+  type Formats,
+  type HashAlgo,
+  type Pk,
+  type Row,
+  type RowGetResult,
+  type RowSaveResult,
+} from '../types';
 import { HASH_ALGOS } from '../lib/formats';
 import { useToast } from './Toast';
 
@@ -101,8 +110,8 @@ export default function RowDrawer({
       const payload: Record<string, string | null> = {};
       const transforms: Record<string, HashAlgo> = {};
       for (const c of columns) {
-        // On insert, let MySQL assign empty auto_increment / pk columns.
-        if (mode === 'new' && isAuto(c) && !nulls.has(c.name) && !values[c.name]) continue;
+        // Auto-increment columns are always DB-assigned — never send them.
+        if (isAuto(c)) continue;
         payload[c.name] = nulls.has(c.name) ? null : (values[c.name] ?? '');
         const algo = formats[c.name];
         if (algo && (mode === 'new' || isDirty(c.name))) transforms[c.name] = algo;
@@ -136,9 +145,12 @@ export default function RowDrawer({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/40" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex animate-fade-in justify-end bg-black/40"
+      onClick={onClose}
+    >
       <div
-        className="flex h-full w-full max-w-lg flex-col bg-surface shadow-2xl"
+        className="flex h-full w-full max-w-lg animate-slide-in-right flex-col bg-surface shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex items-center justify-between border-b border-outline-variant px-lg py-md">
@@ -170,6 +182,7 @@ export default function RowDrawer({
             <div className="space-y-md">
               {columns.map((c) => {
                 const isNull = nulls.has(c.name);
+                const auto = isAuto(c);
                 return (
                   <div key={c.name}>
                     <div className="mb-xs flex items-center gap-sm">
@@ -179,7 +192,13 @@ export default function RowDrawer({
                         <span className="font-mono font-normal text-on-surface-variant">
                           {c.coltype}
                         </span>
+                        {auto && (
+                          <span className="rounded bg-surface-container-high px-xs py-0.5 text-[10px] uppercase text-on-surface-variant">
+                            auto
+                          </span>
+                        )}
                       </label>
+                      {!auto && (
                       <div className="ml-auto flex items-center gap-sm">
                         <select
                           value={formats[c.name] ?? ''}
@@ -194,7 +213,7 @@ export default function RowDrawer({
                             </option>
                           ))}
                         </select>
-                        {c.nullable && (
+                        {isNullable(c) && (
                           <button
                             type="button"
                             onClick={() => toggleNull(c.name)}
@@ -209,13 +228,14 @@ export default function RowDrawer({
                           </button>
                         )}
                       </div>
+                      )}
                     </div>
                     <textarea
                       rows={1}
                       aria-label={c.name}
-                      disabled={isNull}
+                      disabled={isNull || auto}
                       value={isNull ? '' : (values[c.name] ?? '')}
-                      placeholder={isNull ? 'NULL' : ''}
+                      placeholder={auto ? 'auto-increment (assigned by DB)' : isNull ? 'NULL' : ''}
                       onChange={(e) => setValue(c.name, e.target.value)}
                       className="w-full resize-y rounded-lg border border-outline-variant bg-surface-container-low px-md py-sm font-mono text-xs text-on-surface outline-none focus:border-primary disabled:bg-surface-container disabled:italic disabled:text-on-surface-variant/60"
                     />
