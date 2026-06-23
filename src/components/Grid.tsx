@@ -1,12 +1,17 @@
 // Data grid — sortable headers, optional row selection + click-to-edit.
 // Presentational: sort/selection state + handlers come from TableView.
 
-import { ArrowDown, ArrowUp, KeyRound } from 'lucide-react';
-import type { Column, Row } from '../types';
+import { Link } from 'react-router-dom';
+import { ArrowDown, ArrowUp, KeyRound, ExternalLink } from 'lucide-react';
+import type { Column, Fks, Row } from '../types';
 
 interface Props {
+  /** Active database — needed to build foreign-key links. */
+  db: string;
   columns: Column[];
   rows: Row[];
+  /** Column → referenced table/column (renders the cell as a link). */
+  fks?: Fks;
   sort: string;
   dir: 'ASC' | 'DESC';
   onSort: (col: string) => void;
@@ -21,8 +26,10 @@ interface Props {
 }
 
 export default function Grid({
+  db,
   columns,
   rows,
+  fks,
   sort,
   dir,
   onSort,
@@ -112,16 +119,33 @@ export default function Grid({
                 )}
                 {columns.map((c) => {
                   const v = row[c.name];
+                  const fk = fks?.[c.name];
                   return (
                     <td
                       key={c.name}
                       className="max-w-xs truncate whitespace-nowrap border-b border-outline-variant px-md py-sm font-mono text-xs text-on-surface"
-                      title={v ?? 'NULL'}
+                      title={
+                        fk && v !== null
+                          ? `→ ${fk.table}.${fk.column} = ${v}`
+                          : (v ?? 'NULL')
+                      }
                     >
                       {v === null ? (
                         <span className="italic text-on-surface-variant/60">NULL</span>
                       ) : v === '' ? (
                         <span className="italic text-on-surface-variant/40">empty</span>
+                      ) : fk ? (
+                        <Link
+                          to={`/db/${encodeURIComponent(db)}/table/${encodeURIComponent(
+                            fk.table,
+                          )}?search=${encodeURIComponent(v)}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-xs text-primary hover:underline"
+                          title={`→ ${fk.table}.${fk.column} = ${v}`}
+                        >
+                          {v}
+                          <ExternalLink size={11} className="shrink-0 opacity-60" />
+                        </Link>
                       ) : (
                         v
                       )}

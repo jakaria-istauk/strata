@@ -2,10 +2,10 @@
 // page / sort / dir / search live in the query string (shareable, back-button).
 // Owns row selection, the row drawer (new/edit), per-column formats, bulk delete.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Loader2, X, Plus, Trash2, Table2 } from 'lucide-react';
+import { Search, Loader2, X, Plus, Trash2, Table2, Download } from 'lucide-react';
 import { useRows } from '../hooks/useRows';
 import Grid from '../components/Grid';
 import Pagination from '../components/Pagination';
@@ -14,7 +14,7 @@ import RowDrawer from '../components/RowDrawer';
 import StructModal from '../components/StructModal';
 import ConfirmDanger from '../components/ConfirmDanger';
 import { useToast } from '../components/Toast';
-import { api, ApiError } from '../api';
+import { api, ApiError, exportCsv } from '../api';
 import { getFormats, setFormats as persistFormats } from '../lib/formats';
 import type { Formats, Pk, Row } from '../types';
 
@@ -53,6 +53,8 @@ export default function TableView() {
   const [drawer, setDrawer] = useState<Drawer>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showStruct, setShowStruct] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const { data, isFetching, error } = useRows(db, table, {
     page,
@@ -138,6 +140,43 @@ export default function TableView() {
     onError: (e) => toast.error(e instanceof ApiError ? e.message : String(e)),
   });
 
+  async function doExport() {
+    if (!db || !table || exporting) return;
+    setExporting(true);
+    try {
+      await exportCsv(db, table, { search, sort, dir });
+      toast.success('CSV exported.');
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : String(e));
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  // Keyboard shortcuts: `/` focus search, `n` new row, `e` export
+  // (ignored while typing in a field or with a modal/drawer open).
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const el = e.target as HTMLElement;
+      if (/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) || el.isContentEditable) return;
+      if (drawer || showStruct || confirmDelete) return;
+      if (e.key === '/') {
+        e.preventDefault();
+        searchRef.current?.focus();
+      } else if (e.key === 'n' && data) {
+        e.preventDefault();
+        setDrawer({ mode: 'new' });
+      } else if (e.key === 'e' && data) {
+        e.preventDefault();
+        doExport();
+      }
+    }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, drawer, showStruct, confirmDelete, db, table, search, sort, dir, exporting]);
+
   const allChecked = !!data && data.rows.length > 0 && selected.size === data.rows.length;
 
   return (
@@ -169,9 +208,10 @@ export default function TableView() {
               className="pointer-events-none absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant"
             />
             <input
+              ref={searchRef}
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search all columns…"
+              placeholder="Search all columns…  ( / )"
               className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-7 py-sm text-sm text-on-surface outline-none focus:border-primary"
             />
             {searchInput && (
@@ -193,6 +233,14 @@ export default function TableView() {
         {data && data.columns.length > 0 && (
           <ColumnToggle columns={data.columns} hidden={hidden} onChange={setHidden} />
         )}
+        <button
+          onClick={doExport}
+          disabled={!data || exporting}
+          title="Export all matching rows to CSV (e)"
+          className="flex items-center gap-sm rounded-lg border border-outline-variant px-md py-sm text-sm text-on-surface hover:bg-surface-container-high disabled:opacity-40"
+        >
+          {exporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} Export
+        </button>
         <button
           onClick={() => setShowStruct(true)}
           disabled={!data}
@@ -225,8 +273,10 @@ export default function TableView() {
         <>
           <div className="min-h-0 flex-1">
             <Grid
+              db={db!}
               columns={visibleColumns}
               rows={data.rows}
+              fks={data.fks}
               sort={sort}
               dir={dir}
               onSort={onSort}

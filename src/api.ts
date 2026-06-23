@@ -58,3 +58,47 @@ export async function api<T = unknown>(
 
   return data as T;
 }
+
+/**
+ * Stream a full-table CSV export and trigger a browser download.
+ * api.php `export_csv` returns `text/csv` (not JSON), so it bypasses `api()`.
+ */
+export async function exportCsv(
+  db: string,
+  table: string,
+  params: { search?: string; sort?: string; dir?: 'ASC' | 'DESC' } = {},
+): Promise<void> {
+  const conn = activeConn(db);
+  if (!conn) throw new ApiError('No active connection.', 400);
+
+  let res: Response;
+  try {
+    res = await fetch('/api.php?action=export_csv', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ conn, db, table, ...params }),
+    });
+  } catch {
+    throw new ApiError('Network error — is the server reachable?', 0);
+  }
+
+  if (!res.ok) {
+    // Error responses are JSON { error }; success is a CSV stream.
+    let msg = `Export failed (HTTP ${res.status}).`;
+    try {
+      const j = await res.json();
+      if (j && typeof j === 'object' && 'error' in j) msg = String(j.error);
+    } catch { /* non-JSON body */ }
+    throw new ApiError(msg, res.status);
+  }
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${table}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}

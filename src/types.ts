@@ -62,19 +62,19 @@ export interface TableInfo {
   size: number;
 }
 
-/** Foreign-key edge (api.php `fks` on rows) — used for FK links in Phase 5. */
-export interface ForeignKey {
+/** Foreign-key target (api.php `fks` on rows): column name → referenced table/column. */
+export interface FkTarget {
+  table: string;
   column: string;
-  refDb?: string;
-  refTable: string;
-  refColumn: string;
 }
+/** Map of local column name → its foreign-key target. */
+export type Fks = Record<string, FkTarget>;
 
 export interface RowsResult {
   db: string;
   table: string;
   columns: Column[];
-  fks?: ForeignKey[];
+  fks?: Fks;
   rows: Row[];
   total: number;
   page: number;
@@ -88,15 +88,17 @@ export interface RowsResult {
 export interface Stats {
   version: string;
   uptime: number;
-  dbCount: number;
-  tableCount: number;
-  dbSize: number;
-  threads: number;
+  threadsConnected: number;
+  threadsRunning: number;
   questions: number;
   slowQueries: number;
-  bytesReceived: number;
   bytesSent: number;
-  breakdown: { db: string; size: number }[];
+  bytesReceived: number;
+  breakdown: { select: number; insert: number; update: number; delete: number };
+  dbCount: number;
+  db: string;
+  tableCount: number;
+  dbSize: number;
 }
 
 export interface TestConnectionResult {
