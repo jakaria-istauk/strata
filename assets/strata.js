@@ -132,7 +132,8 @@ function cell(col, val) {
 
 async function loadRows() {
   if (!state.table) return;
-  $('gridMsg').classList.add('hidden');
+  const m = $('gridMsg');
+  m.textContent = 'Loading…'; m.classList.remove('hidden');
   const t0 = performance.now();
   let data;
   try {
@@ -142,12 +143,16 @@ async function loadRows() {
     });
   } catch (e) { renderEmpty('Error: ' + e.message); return; }
   const ms = Math.round(performance.now() - t0);
+  m.classList.add('hidden'); // clear "Loading…"
 
   // primary-key columns drive selection / edit / delete
   state.columns = data.columns;
+  state.fks = data.fks || {};
   state.pkCols = data.columns.filter(c => c.key === 'PRI').map(c => c.name);
+  state.hiddenCols = loadHidden();
   state.selected = new Map(); // rowKey -> pk object
   updateBulkBar();
+  const visible = data.columns.filter(c => !state.hiddenCols.has(c.name));
 
   // context header
   $('ctxTable').textContent = data.table;
@@ -164,7 +169,7 @@ async function loadRows() {
     ? `<th class="px-md py-sm w-10"><input id="selAll" type="checkbox" class="rounded border-outline-variant text-primary focus:ring-primary"/></th>`
     : '';
   $('gridHead').innerHTML = `<tr class="bg-surface-container-highest border-b border-outline-variant">${selTh}${
-    data.columns.map(c => {
+    visible.map(c => {
       const sorted = state.sort === c.name;
       const arrow = sorted ? (state.dir === 'ASC' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more';
       const keyIcon = c.key === 'PRI' ? '<span class="material-symbols-outlined text-[13px] text-tertiary">key</span>' : '';
@@ -189,10 +194,22 @@ async function loadRows() {
       ? `<td class="px-md py-xs"><input type="checkbox" data-sel="${i}" class="rowSel rounded border-outline-variant text-primary focus:ring-primary"/></td>`
       : '';
     return `<tr data-row="${i}" class="group border-b border-outline-variant hover:bg-surface-container-highest/50 transition-colors cursor-pointer ${i % 2 ? 'bg-surface-container-low/30' : ''}">${selCell}${
-      data.columns.map(c => `<td class="px-md py-xs">${cell(c, r[c.name])}</td>`).join('')
+      visible.map(c => {
+        const fk = state.fks[c.name];
+        const v = r[c.name];
+        const inner = (fk && v !== null)
+          ? `<a href="#" class="fk-link text-primary underline decoration-dotted decoration-primary/40 hover:decoration-primary" data-fktable="${esc(fk.table)}" data-fkval="${esc(v)}">${esc(v)}<span class="material-symbols-outlined text-[12px] align-middle ml-[2px]">north_east</span></a>`
+          : cell(c, v);
+        return `<td class="px-md py-xs">${inner}</td>`;
+      }).join('')
     }</tr>`;
   }).join('');
   state._lastData = data;
+  // foreign-key links jump to the referenced table filtered by value
+  $('gridBody').querySelectorAll('.fk-link').forEach(a => a.onclick = (e) => {
+    e.preventDefault(); e.stopPropagation();
+    jumpToFk(a.dataset.fktable, a.dataset.fkval);
+  });
   // row click → open detail drawer (ignore clicks on the checkbox cell)
   $('gridBody').querySelectorAll('tr').forEach(tr => {
     tr.onclick = (e) => {
@@ -243,18 +260,6 @@ async function bulkDelete() {
   } catch (e) { alert('Delete failed: ' + e.message); }
 }
 
-function exportCsv() {
-  const d = state._lastData;
-  if (!d || !d.rows.length) return;
-  const cols = d.columns.map(c => c.name);
-  const q = (v) => v === null ? '' : `"${String(v).replace(/"/g, '""')}"`;
-  const csv = [cols.join(','), ...d.rows.map(r => cols.map(c => q(r[c])).join(','))].join('\r\n');
-  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-  const a = document.createElement('a');
-  a.href = url; a.download = `${state.db}.${state.table}_p${state.page}.csv`; a.click();
-  URL.revokeObjectURL(url);
-}
-
 // events
 $('dbSelect').onchange = (e) => { state.db = e.target.value; loadTables(); };
 $('tableFilter').oninput = renderTableList;
@@ -262,7 +267,7 @@ $('perPage').onchange = (e) => { state.perPage = +e.target.value; state.page = 1
 $('prevPage').onclick = () => { if (state.page > 1) { state.page--; loadRows(); } };
 $('nextPage').onclick = () => { const d = state._lastData; if (d && state.page < d.pages) { state.page++; loadRows(); } };
 $('btnRefresh').onclick = loadRows;
-$('btnExport').onclick = exportCsv;
+$('btnExport').onclick = exportFullCsv;
 let searchTimer;
 $('rowSearch').oninput = (e) => { clearTimeout(searchTimer); searchTimer = setTimeout(() => { state.search = e.target.value.trim(); state.page = 1; loadRows(); }, 300); };
 
@@ -784,6 +789,72 @@ $('sqlEditor').addEventListener('keydown', (e) => {
 });
 $('sqlEditor').value = qtabs.tabs[qtabs.active].sql;
 renderQTabs();
+
+// ---- polish: columns, FK jump, full export, shortcuts (Phase 6) ----------
+function hiddenKey() { return `strata-hidden:${state.db}.${state.table}`; }
+function loadHidden() { try { return new Set(JSON.parse(localStorage.getItem(hiddenKey())) || []); } catch { return new Set(); } }
+function saveHidden(s) { localStorage.setItem(hiddenKey(), JSON.stringify([...s])); }
+
+function jumpToFk(table, val) {
+  if (!state.tables.find(t => t.name === table)) { flash(`Referenced table "${table}" not in this database`); return; }
+  state.table = table; state.page = 1; state.sort = ''; state.dir = 'ASC';
+  state.search = String(val); $('rowSearch').value = String(val);
+  renderTableList(); loadRows();
+}
+
+function toggleColMenu() {
+  const m = $('colMenu');
+  if (!m.classList.contains('hidden')) { m.classList.add('hidden'); return; }
+  const cols = state.columns || [];
+  m.innerHTML = cols.map(c => {
+    const hidden = state.hiddenCols.has(c.name);
+    return `<label class="flex items-center gap-sm px-sm py-xs rounded hover:bg-surface-container-high cursor-pointer text-[13px]">
+      <input type="checkbox" data-col="${esc(c.name)}" ${hidden ? '' : 'checked'} class="rounded border-outline-variant text-primary focus:ring-primary"/>
+      <span class="truncate">${esc(c.name)}</span></label>`;
+  }).join('') || '<p class="text-xs opacity-60 p-sm">No columns</p>';
+  m.querySelectorAll('input').forEach(cb => cb.onchange = () => {
+    if (cb.checked) state.hiddenCols.delete(cb.dataset.col); else state.hiddenCols.add(cb.dataset.col);
+    saveHidden(state.hiddenCols); loadRows();
+  });
+  m.classList.remove('hidden');
+}
+
+async function exportFullCsv() {
+  if (!state.table) return;
+  const conn = activeConn(); if (!conn) return;
+  flash('Preparing CSV…');
+  let res;
+  try {
+    res = await fetch(`${API}?action=export_csv`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ conn, db: state.db, table: state.table, search: state.search, sort: state.sort, dir: state.dir }),
+    });
+  } catch (e) { alert('Export failed: ' + e.message); return; }
+  if (!res.ok) { const e = await res.json().catch(() => ({ error: 'Export failed' })); alert(e.error || 'Export failed'); return; }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `${state.db}.${state.table}.csv`; a.click();
+  URL.revokeObjectURL(url);
+  flash('CSV downloaded');
+}
+
+$('btnColumns').onclick = (e) => { e.stopPropagation(); toggleColMenu(); };
+document.addEventListener('click', (e) => { if (!e.target.closest('#colMenu') && !e.target.closest('#btnColumns')) $('colMenu').classList.add('hidden'); });
+
+// global keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeRowDrawer();
+    if (activeConn()) $('connModal').classList.add('hidden');
+    $('colMenu').classList.add('hidden');
+    $('historyPanel').classList.add('hidden');
+    return;
+  }
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) return;
+  if (e.key === '/') { e.preventDefault(); $('rowSearch').focus(); }
+  else if (e.key === 'n' && state.table && !$('viewBrowser').classList.contains('hidden')) { e.preventDefault(); openRowDrawer('new', null); }
+});
 
 // ---- boot ----------------------------------------------------------------
 async function boot() {

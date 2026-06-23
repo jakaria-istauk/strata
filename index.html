@@ -131,6 +131,12 @@
           <button id="btnExport" class="flex items-center gap-sm px-sm py-sm rounded border border-outline-variant hover:bg-surface-container-high transition-colors text-[13px]">
             <span class="material-symbols-outlined text-[18px]">download</span> Export CSV
           </button>
+          <div class="relative">
+            <button id="btnColumns" class="flex items-center gap-sm px-sm py-sm rounded border border-outline-variant hover:bg-surface-container-high transition-colors text-[13px]">
+              <span class="material-symbols-outlined text-[18px]">view_column</span> Columns
+            </button>
+            <div id="colMenu" class="hidden absolute z-30 mt-xs left-0 w-56 max-h-[300px] overflow-auto scroll glass-panel rounded-lg p-xs shadow-2xl"></div>
+          </div>
           <div id="bulkBar" class="hidden items-center gap-sm pl-sm ml-xs border-l border-outline-variant">
             <span id="bulkCount" class="text-[13px] text-on-surface-variant"></span>
             <button id="btnBulkDelete" class="flex items-center gap-sm px-sm py-sm rounded border border-error/50 text-error hover:bg-error/10 transition-colors text-[13px]">

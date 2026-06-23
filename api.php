@@ -101,6 +101,21 @@ function assertTable(PDO $p, string $db, string $table): string {
     return $table;
 }
 
+/** Map of column => {table,column} for foreign keys on a validated db.table. */
+function fksOf(PDO $p, string $db, string $table): array {
+    $stmt = $p->prepare(
+        'SELECT COLUMN_NAME AS col, REFERENCED_TABLE_NAME AS reftable, REFERENCED_COLUMN_NAME AS refcol
+         FROM information_schema.KEY_COLUMN_USAGE
+         WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND REFERENCED_TABLE_NAME IS NOT NULL'
+    );
+    $stmt->execute([$db, $table]);
+    $out = [];
+    foreach ($stmt->fetchAll() as $r) {
+        $out[$r['col']] = ['table' => $r['reftable'], 'column' => $r['refcol']];
+    }
+    return $out;
+}
+
 /** Return ordered column metadata for a validated db.table. */
 function columnsOf(PDO $p, string $db, string $table): array {
     $stmt = $p->prepare(
@@ -209,6 +224,7 @@ switch ($action) {
             'db'       => $db,
             'table'    => $table,
             'columns'  => $cols,
+            'fks'      => fksOf($base, $db, $table),
             'rows'     => $rows,
             'total'    => $total,
             'page'     => $page,
@@ -218,6 +234,41 @@ switch ($action) {
             'dir'      => $dir,
             'search'   => $search,
         ]);
+    }
+
+    case 'export_csv': {
+        $base  = pdo();
+        $db    = assertDb($base, (string)($IN['db'] ?? ''));
+        $table = assertTable($base, $db, (string)($IN['table'] ?? ''));
+        $cols  = columnsOf($base, $db, $table);
+        $colNames = array_column($cols, 'name');
+
+        // optional search filter (mirrors the rows action)
+        $where = ''; $params = [];
+        $search = trim((string)($IN['search'] ?? ''));
+        if ($search !== '') {
+            $likes = [];
+            foreach ($colNames as $c) { $likes[] = 'CAST(' . qid($c) . ' AS CHAR) LIKE ?'; $params[] = '%' . $search . '%'; }
+            $where = ' WHERE (' . implode(' OR ', $likes) . ')';
+        }
+        $sort = (string)($IN['sort'] ?? '');
+        $dir  = strtoupper((string)($IN['dir'] ?? 'ASC')) === 'DESC' ? 'DESC' : 'ASC';
+        $orderSql = ($sort !== '' && in_array($sort, $colNames, true)) ? ' ORDER BY ' . qid($sort) . ' ' . $dir : '';
+
+        // stream CSV directly (no full buffering)
+        header_remove('Content-Type');
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $db . '.' . $table . '.csv"');
+        $out = fopen('php://output', 'w');
+        fputcsv($out, $colNames, ',', '"', '');
+        $conn = pdo($db);
+        $stmt = $conn->prepare('SELECT * FROM ' . qid($table) . $where . $orderSql);
+        $stmt->execute($params);
+        while ($row = $stmt->fetch()) {
+            fputcsv($out, array_map(fn($v) => $v === null ? '' : $v, array_values($row)), ',', '"', '');
+        }
+        fclose($out);
+        exit;
     }
 
     case 'row_get': {

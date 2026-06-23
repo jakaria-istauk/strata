@@ -89,12 +89,13 @@ Creds move out of `api.php` constants → sent per-request from client. `api.php
 - [x] `action=stats` reads `SHOW GLOBAL STATUS` + information_schema.
 - **Verified (Chrome):** cards + bars render against live server; refresh works.
 
-## Phase 6 — Polish / Pre-release
-- [ ] Full-table CSV export (streamed).
-- [ ] Column show/hide, foreign-key links.
-- [ ] Tailwind CLI build (drop CDN), minify.
-- [ ] Keyboard shortcuts, empty/error states, loading skeletons.
-- [ ] README: install, run, security.
+## Phase 6 — Polish / Pre-release ✅ MOSTLY DONE
+- [x] Full-table CSV export (streamed server-side via `export_csv`, honors search/sort).
+- [x] Column show/hide (per-table, persisted), foreign-key links (jump to referenced table).
+- [ ] Tailwind CLI build (drop CDN), minify. — **deferred**: keeps the "no build step" model; CDN warning is dev-only.
+- [x] Keyboard shortcuts (`/`, `n`, ⌘/Ctrl+Enter, Esc); loading + empty/error states.
+- [x] README: features, shortcuts, run, security.
+- **Verified (Chrome):** FK jump, column hide+persist, full-table export, loading state.
 
 ---
 
