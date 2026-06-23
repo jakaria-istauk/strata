@@ -68,4 +68,4 @@ Planned (see PLAN.md): `test_connection`, `row_get`, `row_save`, `row_delete`, `
 
 ## Status
 
-Phase 0 (Explorer foundation) ✅ done. Page still titled "NexusDB Pro" — rebrand to Strata is Phase 1. Next phases in [PLAN.md](PLAN.md).
+Phase 0 (Explorer foundation) ✅ done. Phase 1 (rebrand → Strata + Light/Dark/System theming) ✅ done — tokens in `assets/strata.css`, theme switcher in top bar. Next: Phase 2 (Connection Settings) in [PLAN.md](PLAN.md).

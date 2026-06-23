@@ -42,16 +42,16 @@ Creds move out of `api.php` constants → sent per-request from client. `api.php
 - [x] Explorer SPA: grid, sort, search, pagination, CSV, table list
 - [x] Verified live against Herd MySQL + via `php -S` (Herd-independent)
 
-## Phase 1 — Rebrand + Theming
+## Phase 1 — Rebrand + Theming ✅ DONE
 **Goal:** Strata identity + Light/Dark/System modes.
-- [ ] Rename NexusDB → **Strata** (title, logo, footer, version).
-- [ ] Extract inline styles → `assets/strata.css` using CSS variables.
-- [ ] Define **two token sets**: light + dark (from DESIGN.md, plus a light palette).
-- [ ] Tailwind config reads `var(--…)` so utilities theme automatically.
-- [ ] Theme switcher (top bar): Light / Dark / System.
-- [ ] `System` mode: live-follow `matchMedia('(prefers-color-scheme: dark)')`.
-- [ ] Persist mode in localStorage; apply before first paint (no flash).
-- **Verify:** toggle all 3 modes, reload, OS theme change reflects in System mode.
+- [x] Rename NexusDB → **Strata** (title, logo, footer, version).
+- [x] Extract inline styles → `assets/strata.css` using CSS variables.
+- [x] Define **two token sets**: light + dark (RGB-triplet tokens).
+- [x] Tailwind config reads `var(--…)` so utilities theme automatically.
+- [x] Theme switcher (top bar): Light / Dark / System.
+- [x] `System` mode: live-follow `matchMedia('(prefers-color-scheme: dark)')`.
+- [x] Persist mode in localStorage; apply before first paint (no flash).
+- **Verified:** all 3 modes + reload persistence in Chrome (devtools MCP) + Firefox.
 
 ## Phase 2 — Connection Settings
 **Goal:** connect to any MySQL; creds in localStorage.
