@@ -1,119 +1,108 @@
 # Strata — Implementation Plan
 
-Phased build. Each phase = shippable + verifiable in browser. Order chosen so connection + theming (foundational rework) land before new screens.
+React SPA front-end over a thin PHP+PDO JSON API. Phased build; each phase = shippable + verifiable in the browser. The API (`api.php`) and its feature set are complete — these phases rebuild the **front-end** as a fast React single-page app.
 
 ---
 
 ## Architecture
 
 ```
-browser (vanilla JS + Tailwind)
-  localStorage: connection profiles, active profile, theme mode, query history
-        │  every API call sends active connection creds (POST JSON / X-DB-* headers)
+browser — React SPA (Vite + TS + Tailwind + TanStack Query + React Router)
+  localStorage: connection profiles, active profile, theme mode, query history,
+                per-column formats, hidden columns
+        │  every API call = POST JSON { conn:{host,port,user,pass,db?}, ...params }
         ▼
-app/api.php  (PHP + PDO, stateless)
+api.php  (PHP + PDO, stateless — unchanged)
   - reads creds from request (NOT hardcoded)
-  - validates identifiers vs live schema
-  - actions: databases, tables, columns, rows, query, row_get, row_save, row_delete
+  - validates identifiers vs live schema; bound params for values
         ▼
    any MySQL (Herd / Docker / brew / remote)
 ```
 
-### Key change from Phase 0
-Creds move out of `api.php` constants → sent per-request from client. `api.php` becomes a pure stateless gateway. No server-side config file needed (localStorage is the source of truth).
+### Build & serve
+- **Dev:** `npm run dev` (Vite :5173); proxies `/api.php` → `http://strata.test` (Herd runs PHP+MySQL — no separate `php -S`).
+- **Prod:** `npm run build` → `dist/` (index.html + hashed assets + `api.php` copied in). `strata.test` is `herd link`ed to `dist/`, so SPA + API are same-origin. (No SSL on the link → use `http://`.)
+- **Shareable bundle:** `make zip` → `strata.zip` of the built `dist/`. Recipient needs only PHP: `unzip … && php -S 127.0.0.1:8000`.
 
-### File layout (target)
+### File layout
 ```
-/                      repo root (git: strata) — app served from here
-  README.md  CLAUDE.md
-  index.html           shell + Explorer
-  api.php              JSON gateway
-  assets/
-    strata.css         CSS-variable theme tokens (light/dark)
-    strata.js          app logic (modularised from inline)
+/                      repo root
+  README.md  CLAUDE.md  Makefile  package.json
+  index.html           Vite entry (pre-paint theme script + #root)
+  api.php              JSON gateway (unchanged)
+  vite.config.ts  tailwind.config.ts  tsconfig*.json  postcss.config.js
+  public/
+    assets/strata-logo.png
+    fonts/             3 latin variable woff2 (Inter / Geist / JetBrains Mono)
+  src/
+    main.tsx           mount: QueryClient + RouterProvider
+    index.css          Tailwind + theme tokens + @font-face
+    api.ts  types.ts   typed gateway wrapper + API contract types
+    lib/               profiles.ts, formats.ts, theme.ts
+    hooks/             useDatabases / useTables / useRows / useColumns / useStats
+    routes/            route components
+    components/        Sidebar, Grid, RowDrawer, QueryEditor, Dashboard, modals…
   docs/
-    PRD.md  PLAN.md    product + plan docs
-  legacy/              old adminer (reference, gitignored)
-  ui/                  design mockups (reference, gitignored)
+    PRD.md  PLAN.md
+  dist/                build output (gitignored) — strata.test serves this
 ```
 
----
-
-## Phase 0 — Foundation ✅ DONE
-- [x] PHP+PDO JSON API: `databases`, `tables`, `columns`, `rows`
-- [x] Explorer SPA: grid, sort, search, pagination, CSV, table list
-- [x] Verified live against Herd MySQL + via `php -S` (Herd-independent)
-
-## Phase 1 — Rebrand + Theming ✅ DONE
-**Goal:** Strata identity + Light/Dark/System modes.
-- [x] Rename NexusDB → **Strata** (title, logo, footer, version).
-- [x] Extract inline styles → `assets/strata.css` using CSS variables.
-- [x] Define **two token sets**: light + dark (RGB-triplet tokens).
-- [x] Tailwind config reads `var(--…)` so utilities theme automatically.
-- [x] Theme switcher (top bar): Light / Dark / System.
-- [x] `System` mode: live-follow `matchMedia('(prefers-color-scheme: dark)')`.
-- [x] Persist mode in localStorage; apply before first paint (no flash).
-- **Verified:** all 3 modes + reload persistence in Chrome (devtools MCP) + Firefox.
-
-## Phase 2 — Connection Settings ✅ DONE
-**Goal:** connect to any MySQL; creds in localStorage.
-- [x] Settings modal: host, port, user, password, default DB, profile name.
-- [x] Multiple profiles; active-profile selector in sidebar.
-- [x] `api.php`: reads creds from request body `conn`; constants dropped.
-- [x] `action=test_connection` → ping + return server version.
-- [x] "Remember password" toggle (else session-only, re-prompt on reload).
-- [x] First-run: no profile → blocking connect screen.
-- **Verified (Chrome):** first-run, test, save, 2nd profile, switch, wrong creds → clean inline error, password re-prompt on reload.
-- **Security note in README:** plaintext localStorage, localhost binding recommended (already documented).
-
-## Phase 3 — Row CRUD ✅ DONE
-**Goal:** safe data editing.
-- [x] `row_get` (by PK), `row_save` (insert/update), `row_delete` (bulk, transactional).
-- [x] Row detail drawer (read) → Edit mode.
-- [x] Type-aware inputs (number/textarea); NULL toggle; PK/auto-increment locked.
-- [x] New Record form. Delete with confirm. Bulk delete from row checkboxes.
-- [x] Refresh after save/delete; errors shown inline in the drawer.
-- **Verified (Chrome):** insert/edit/NULL/single-delete/bulk-delete on a scratch table; PK-less table is view-only (no checkboxes, no edit/delete).
-
-## Phase 4 — SQL Editor (Query Runner) ✅ DONE
-**Goal:** run arbitrary SQL.
-- [x] `action=query` → result set (columns+rows) or affected-count; errors as JSON `{error}`.
-- [x] Lightweight mono textarea editor; Run (⌘/Ctrl+Enter) / Explain (prefix `EXPLAIN`).
-- [x] Results render in a grid; query timing + row/affected count.
-- [x] Query tabs + history (last 40) in localStorage.
-- **Verified (Chrome):** SELECT, EXPLAIN, exec (SET), and a syntax error each render correctly; tabs + history work.
-
-## Phase 5 — Dashboard ✅ DONE
-- [x] Metrics: connections, DB count, table count + size, uptime, queries, slow queries, bytes.
-- [x] Stat cards + CSS query-breakdown bars (SELECT/INSERT/UPDATE/DELETE), no heavy dep.
-- [x] `action=stats` reads `SHOW GLOBAL STATUS` + information_schema.
-- **Verified (Chrome):** cards + bars render against live server; refresh works.
-
-## Phase 6 — Polish / Pre-release ✅ MOSTLY DONE
-- [x] Full-table CSV export (streamed server-side via `export_csv`, honors search/sort).
-- [x] Column show/hide (per-table, persisted), foreign-key links (jump to referenced table).
-- [ ] Tailwind CLI build (drop CDN), minify. — **deferred**: keeps the "no build step" model; CDN warning is dev-only.
-- [x] Keyboard shortcuts (`/`, `n`, ⌘/Ctrl+Enter, Esc); loading + empty/error states.
-- [x] README: features, shortcuts, run, security.
-- **Verified (Chrome):** FK jump, column hide+persist, full-table export, loading state.
+### Conventions
+- **No CDN:** icons via lucide-react; fonts self-hosted in `public/fonts/`.
+- **Theme:** Light/Dark/System. Pre-paint script inline in `index.html` head (avoids flash); runtime switch in `lib/theme.ts`. Colors are CSS-variable tokens in `src/index.css`, mapped to Tailwind classes in `tailwind.config.ts` — never hardcode colors.
+- **Creds:** stateless. Active profile's creds sent per-request in body `conn`. Passwords persist only when "Remember" is on; else kept in-memory, re-prompted on reload.
+- **Server state:** TanStack Query for all db/table/row fetching (cache + loading/error). URL (React Router) holds active db/table + page/sort/search.
 
 ---
 
-## Phase 7 — Schema ops 🚧 IN PROGRESS
-- [x] Create database (`create_database`) — sidebar **+** by the DB selector → name modal; utf8mb4/unicode_ci.
-- [x] Create table (`create_table`) — sidebar **+** by Tables → modal with column builder (name, type, PK, AUTO_INCREMENT, NULL); InnoDB/utf8mb4.
-- [x] Drop database / drop table — trash buttons (DB selector + per-table hover) → type-to-confirm modal.
-- [ ] Alter table (add/modify/drop column, indexes).
-- **Safety:** new identifiers validated via `assertIdent` (whitelist), types regex-checked, all backtick-quoted. Drops validate against schema (`assertDb`/`assertTable`) and require typing the exact name to confirm.
+## Phase 1 — Scaffold ✅ DONE
+- [x] Vite + React 18 + TS; Tailwind v3 with token classes ported from the old theme.
+- [x] Pre-paint theme script; `lib/theme.ts` runtime switch (Light/Dark/System).
+- [x] lucide-react icons; 3 self-hosted latin variable woff2 (no Google CDN).
+- [x] QueryClient provider; dev proxy `/api.php` → strata.test.
+- [x] Build → `dist/` (+ api.php); `strata.test` linked; `make zip` round-trip.
+- **Verified (Chrome):** renders at strata.test + from clean unzip; fonts loaded; console clean.
+
+## Phase 2 — Data layer 🚧 NEXT
+- [ ] `src/api.ts` — typed `api(action, params)` POST wrapper (injects active `conn`, throws on `{error}`).
+- [ ] `src/types.ts` — API contract types (Column, Row, Stats, Profile, …).
+- [ ] `lib/profiles.ts` — localStorage profiles, active id, runtime-only passwords, `activeConn()`.
+- [ ] ConnModal + profile CRUD (add/edit/delete/switch) + `test_connection`.
+- [ ] Gate the app on an active connection (prompt when password needed).
+
+## Phase 3 — Explorer core
+- [ ] Sidebar: DbSelect + TableList + filter.
+- [ ] Routing: `/db/:db/table/:table`; page/sort/search in URL search params.
+- [ ] Grid + Pagination + Toolbar (sort, search). Hooks: `useDatabases`, `useTables`, `useRows`.
+
+## Phase 4 — Row CRUD
+- [ ] RowDrawer (view / edit / new), NULL toggle.
+- [ ] Per-column formats → `transforms` on save (`lib/formats.ts`).
+- [ ] Bulk delete; ConfirmDanger (type-to-confirm); Toast.
+
+## Phase 5 — Grid polish
+- [ ] Column show/hide (persisted), foreign-key links.
+- [ ] Full-table CSV export (streamed). Keyboard shortcuts. Loading/empty/error states.
+
+## Phase 6 — SQL editor + Dashboard
+- [ ] QueryEditor (`/db/:db/query`): run SQL, result grid vs exec, timing, history.
+- [ ] Dashboard (`/db/:db/dashboard`): server stats cards + size breakdown.
+
+## Phase 7 — Schema ops
+- [ ] NewDbModal, NewTableModal (column builder).
+- [ ] StructModal: alter table (rename/retype/null/AI, add & drop columns) + per-column formats.
+- [ ] Drop database / drop table (type-to-confirm).
+
+## Phase 8 — Cutover
+- [ ] Final README + Makefile; CLAUDE.md updated to the React stack.
+- [ ] Remove obsolete vanilla source files from the repo.
 
 ---
 
 ## Cross-cutting
-
-- **Security:** identifier whitelisting (done), bound params for values, creds-in-transit doc, recommend localhost/HTTPS.
-- **Errors:** every API error → JSON `{error}`; UI shows inline, never blank grid.
-- **No framework:** keep vanilla; split `strata.js` into small modules if it grows.
-- **Testing:** manual browser verify per phase via chrome-devtools MCP; smoke-test API via `php -r`/curl.
+- **Security:** identifier whitelisting + schema validation in `api.php` (unchanged); bound params for values; recommend localhost/HTTPS for remote.
+- **Errors:** every API error → JSON `{error}`; UI shows inline, never a blank grid.
+- **Testing:** manual browser verify per phase via chrome-devtools MCP; smoke-test API via curl.
 
 ## Sequencing rationale
-Theming (P1) + Connection (P2) are foundational reworks touching every screen — do them before adding CRUD/SQL/Dashboard so new screens inherit tokens + creds model from day one.
+Data layer + connection (P2) is foundational — every screen needs the typed gateway and creds model — so it lands before the Explorer, CRUD, SQL, and Dashboard screens.

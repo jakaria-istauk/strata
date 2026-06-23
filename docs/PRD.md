@@ -23,7 +23,7 @@ Runs anywhere PHP runs (`php -S`, Herd, Apache, nginx+fpm). Decoupled from Herd.
 - G3. Edit data safely (insert / update / delete) with confirmation.
 - G4. Connect to **any** MySQL via a settings page — creds in localStorage, not hardcoded.
 - G5. Light / Dark / System (device-preference) theming.
-- G6. No build step required to run; optional build for production.
+- G6. Ship as a pre-built static bundle + `api.php`; recipient runs it with only PHP (no Node/npm).
 
 ## 3. Non-Goals (v1)
 
@@ -84,7 +84,7 @@ Runs anywhere PHP runs (`php -S`, Herd, Apache, nginx+fpm). Decoupled from Herd.
 ## 7. Technical Constraints
 
 - PHP 8.x with `pdo_mysql`.
-- Front-end: vanilla JS + Tailwind (CDN dev / CLI prod). No SPA framework v1.
+- Front-end: React 18 + TypeScript + Vite + Tailwind v3 (TanStack Query, React Router). No CDN — icons (lucide-react) and fonts self-hosted.
 - No DB-side schema for Strata itself; all state in localStorage.
 - All identifiers validated against live schema before interpolation (SQL-injection safe).
 
