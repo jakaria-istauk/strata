@@ -324,6 +324,37 @@ switch ($action) {
         ok(['ok' => true, 'deleted' => $deleted]);
     }
 
+    case 'query': {
+        $sql = trim((string)($IN['sql'] ?? ''));
+        if ($sql === '') fail(400, 'Empty query');
+        $db = (string)($IN['db'] ?? '');
+        if ($db !== '') assertDb(pdo(), $db);
+        $conn = $db !== '' ? pdo($db) : pdo();
+        try {
+            $t0   = microtime(true);
+            $stmt = $conn->query($sql);
+            $ms   = round((microtime(true) - $t0) * 1000, 1);
+            if ($stmt->columnCount() > 0) {
+                $rows = $stmt->fetchAll();
+                $names = [];
+                for ($i = 0; $i < $stmt->columnCount(); $i++) {
+                    $m = $stmt->getColumnMeta($i);
+                    $names[] = $m['name'] ?? "col$i";
+                }
+                ok([
+                    'type'     => 'result',
+                    'columns'  => array_map(fn($n) => ['name' => $n, 'key' => '', 'type' => ''], $names),
+                    'rows'     => $rows,
+                    'rowCount' => count($rows),
+                    'ms'       => $ms,
+                ]);
+            }
+            ok(['type' => 'exec', 'affected' => $stmt->rowCount(), 'ms' => $ms]);
+        } catch (PDOException $e) {
+            fail(400, $e->getMessage());
+        }
+    }
+
     default:
         fail(400, 'Unknown action: ' . $action);
 }

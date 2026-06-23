@@ -89,8 +89,8 @@
     <nav class="flex gap-lg items-center">
       <span class="font-display text-lg font-bold text-on-surface">Strata</span>
       <div class="hidden md:flex items-center gap-md border-l border-outline-variant pl-lg ml-sm">
-        <span class="text-primary font-bold border-b-2 border-primary py-sm cursor-pointer">Data Browser</span>
-        <span class="text-on-surface-variant font-medium hover:bg-surface-container-high transition-colors px-sm py-xs rounded cursor-pointer opacity-50">Query Runner</span>
+        <span data-view="browser" class="navtab text-primary font-bold border-b-2 border-primary py-sm cursor-pointer">Data Browser</span>
+        <span data-view="query" class="navtab text-on-surface-variant font-medium hover:bg-surface-container-high transition-colors px-sm py-xs rounded cursor-pointer">Query Runner</span>
         <span class="text-on-surface-variant font-medium hover:bg-surface-container-high transition-colors px-sm py-xs rounded cursor-pointer opacity-50">Visualizer</span>
       </div>
     </nav>
@@ -108,8 +108,8 @@
     </div>
   </header>
 
-  <!-- Content -->
-  <div class="flex-1 flex flex-col overflow-hidden p-md gap-md">
+  <!-- Content: Data Browser -->
+  <div id="viewBrowser" class="flex-1 flex flex-col overflow-hidden p-md gap-md">
     <!-- Context header + toolbar -->
     <div class="flex flex-col gap-sm">
       <div class="flex items-center justify-between">
@@ -175,6 +175,52 @@
       </div>
       <div class="flex items-center gap-lg"><span>UTF-8 · InnoDB</span></div>
     </footer>
+  </div>
+
+  <!-- Content: Query Runner -->
+  <div id="viewQuery" class="hidden flex-1 flex flex-col overflow-hidden p-md gap-md">
+    <!-- query tabs -->
+    <div class="flex items-center gap-xs">
+      <div id="queryTabs" class="flex items-center gap-xs overflow-x-auto scroll"></div>
+      <button id="btnNewTab" title="New query tab" class="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg border border-outline-variant hover:bg-surface-container-high text-on-surface-variant"><span class="material-symbols-outlined text-[18px]">add</span></button>
+    </div>
+
+    <!-- editor + toolbar -->
+    <div class="glass-panel rounded-xl flex flex-col">
+      <textarea id="sqlEditor" spellcheck="false" placeholder="SELECT * FROM …    (⌘/Ctrl+Enter to run)"
+        class="w-full bg-transparent resize-y px-md py-sm font-mono text-[13px] text-on-surface focus:ring-0 focus:outline-none border-none min-h-[140px]"></textarea>
+      <div class="flex items-center justify-between gap-md px-sm py-sm border-t border-outline-variant">
+        <div class="flex items-center gap-sm">
+          <button id="btnRun" class="flex items-center gap-sm px-md py-sm rounded-lg bg-primary text-on-primary font-semibold hover:opacity-90 transition-opacity text-[13px]">
+            <span class="material-symbols-outlined text-[18px]">play_arrow</span> Run
+          </button>
+          <button id="btnExplain" class="flex items-center gap-sm px-sm py-sm rounded-lg border border-outline-variant hover:bg-surface-container-high transition-colors text-[13px]">
+            <span class="material-symbols-outlined text-[18px]">query_stats</span> Explain
+          </button>
+          <button id="btnHistory" class="flex items-center gap-sm px-sm py-sm rounded-lg border border-outline-variant hover:bg-surface-container-high transition-colors text-[13px]">
+            <span class="material-symbols-outlined text-[18px]">history</span> History
+          </button>
+        </div>
+        <div class="flex items-center gap-md text-sm text-on-surface-variant">
+          <span class="font-mono">DB: <span id="qDbName" class="text-on-surface">—</span></span>
+          <span id="qMeta" class="font-mono"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- history dropdown -->
+    <div id="historyPanel" class="hidden glass-panel rounded-xl p-sm max-h-[200px] overflow-auto scroll"></div>
+
+    <!-- results -->
+    <div class="flex-1 glass-panel rounded-xl overflow-hidden flex flex-col">
+      <div id="qResultWrap" class="scroll flex-1 overflow-auto">
+        <table class="w-full text-left border-collapse min-w-[600px]">
+          <thead id="qHead" class="sticky top-0 z-20"></thead>
+          <tbody id="qBody" class="font-mono text-sm"></tbody>
+        </table>
+        <div id="qMsg" class="p-xl text-center text-on-surface-variant opacity-60">Run a query to see results.</div>
+      </div>
+    </div>
   </div>
 </main>
 

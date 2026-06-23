@@ -75,13 +75,13 @@ Creds move out of `api.php` constants → sent per-request from client. `api.php
 - [x] Refresh after save/delete; errors shown inline in the drawer.
 - **Verified (Chrome):** insert/edit/NULL/single-delete/bulk-delete on a scratch table; PK-less table is view-only (no checkboxes, no edit/delete).
 
-## Phase 4 — SQL Editor (Query Runner)
+## Phase 4 — SQL Editor (Query Runner) ✅ DONE
 **Goal:** run arbitrary SQL.
-- [ ] `action=query` → run SQL, return columns+rows or affected-count+error.
-- [ ] Editor (CodeMirror or lightweight), Run / Explain (prefix `EXPLAIN`).
-- [ ] Results reuse Explorer grid. Query timing + row count.
-- [ ] Query tabs + history in localStorage.
-- **Verify:** SELECT, UPDATE, EXPLAIN, and a syntax error each render correctly.
+- [x] `action=query` → result set (columns+rows) or affected-count; errors as JSON `{error}`.
+- [x] Lightweight mono textarea editor; Run (⌘/Ctrl+Enter) / Explain (prefix `EXPLAIN`).
+- [x] Results render in a grid; query timing + row/affected count.
+- [x] Query tabs + history (last 40) in localStorage.
+- **Verified (Chrome):** SELECT, EXPLAIN, exec (SET), and a syntax error each render correctly; tabs + history work.
 
 ## Phase 5 — Dashboard (optional)
 - [ ] Metrics: connections, DB count/size, table count, slow queries.

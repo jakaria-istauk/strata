@@ -583,6 +583,152 @@ document.querySelectorAll('.theme-seg button').forEach(b =>
 mql.onchange = () => { if ((localStorage.getItem('strata-theme') || 'system') === 'system') applyTheme('system'); };
 applyTheme(localStorage.getItem('strata-theme') || 'system');
 
+// ---- view switching ------------------------------------------------------
+function switchView(name) {
+  $('viewBrowser').classList.toggle('hidden', name !== 'browser');
+  $('viewQuery').classList.toggle('hidden', name !== 'query');
+  document.querySelectorAll('.navtab').forEach(t => {
+    const on = t.dataset.view === name;
+    t.classList.toggle('text-primary', on);
+    t.classList.toggle('font-bold', on);
+    t.classList.toggle('border-b-2', on);
+    t.classList.toggle('border-primary', on);
+    t.classList.toggle('py-sm', on);
+    t.classList.toggle('text-on-surface-variant', !on);
+    t.classList.toggle('font-medium', !on);
+  });
+  if (name === 'query') { $('qDbName').textContent = state.db || '—'; $('sqlEditor').focus(); }
+}
+document.querySelectorAll('.navtab').forEach(t => t.onclick = () => switchView(t.dataset.view));
+
+// ---- query runner (Phase 4) ----------------------------------------------
+const QTABS_KEY = 'strata-qtabs';
+const QHIST_KEY = 'strata-qhistory';
+
+function loadQTabs() {
+  try { const t = JSON.parse(localStorage.getItem(QTABS_KEY)); if (t && t.tabs?.length) return t; } catch {}
+  return { tabs: [{ id: uid(), name: 'Query 1', sql: '' }], active: 0 };
+}
+let qtabs = loadQTabs();
+function saveQTabs() { localStorage.setItem(QTABS_KEY, JSON.stringify(qtabs)); }
+
+function renderQTabs() {
+  $('queryTabs').innerHTML = qtabs.tabs.map((t, i) => {
+    const on = i === qtabs.active;
+    return `<div data-tab="${i}" class="qtab flex items-center gap-xs px-md py-xs rounded-lg cursor-pointer whitespace-nowrap ${on ? 'bg-secondary-container text-on-secondary-container font-semibold' : 'text-on-surface-variant hover:bg-surface-container-high'}">
+      <span>${esc(t.name)}</span>
+      ${qtabs.tabs.length > 1 ? `<span data-close="${i}" class="material-symbols-outlined text-[15px] opacity-60 hover:opacity-100">close</span>` : ''}
+    </div>`;
+  }).join('');
+  $('queryTabs').querySelectorAll('.qtab').forEach(el => {
+    el.onclick = (e) => {
+      if (e.target.dataset.close !== undefined) { closeQTab(+e.target.dataset.close); return; }
+      selectQTab(+el.dataset.tab);
+    };
+  });
+}
+function syncEditorToTab() { if (qtabs.tabs[qtabs.active]) { qtabs.tabs[qtabs.active].sql = $('sqlEditor').value; saveQTabs(); } }
+function selectQTab(i) { syncEditorToTab(); qtabs.active = i; $('sqlEditor').value = qtabs.tabs[i].sql; saveQTabs(); renderQTabs(); }
+function newQTab() {
+  syncEditorToTab();
+  qtabs.tabs.push({ id: uid(), name: `Query ${qtabs.tabs.length + 1}`, sql: '' });
+  qtabs.active = qtabs.tabs.length - 1;
+  $('sqlEditor').value = '';
+  saveQTabs(); renderQTabs(); $('sqlEditor').focus();
+}
+function closeQTab(i) {
+  qtabs.tabs.splice(i, 1);
+  if (qtabs.active >= qtabs.tabs.length) qtabs.active = qtabs.tabs.length - 1;
+  $('sqlEditor').value = qtabs.tabs[qtabs.active].sql;
+  saveQTabs(); renderQTabs();
+}
+
+function loadHistory() { try { return JSON.parse(localStorage.getItem(QHIST_KEY)) || []; } catch { return []; } }
+function pushHistory(sql) {
+  let h = loadHistory().filter(x => x.sql !== sql);
+  h.unshift({ sql, ts: Date.now(), db: state.db });
+  h = h.slice(0, 40);
+  localStorage.setItem(QHIST_KEY, JSON.stringify(h));
+}
+function toggleHistory() {
+  const panel = $('historyPanel');
+  if (!panel.classList.contains('hidden')) { panel.classList.add('hidden'); return; }
+  const h = loadHistory();
+  panel.innerHTML = h.length
+    ? h.map(x => `<button data-sql="${esc(x.sql)}" class="histItem block w-full text-left px-sm py-xs rounded hover:bg-surface-container-high font-mono text-[12px] text-on-surface-variant truncate">${esc(x.sql)}</button>`).join('')
+    : `<p class="text-center opacity-60 py-md">No history yet.</p>`;
+  panel.querySelectorAll('.histItem').forEach(b => b.onclick = () => {
+    $('sqlEditor').value = b.dataset.sql; syncEditorToTab(); panel.classList.add('hidden'); $('sqlEditor').focus();
+  });
+  panel.classList.remove('hidden');
+}
+
+async function runQuery(explain) {
+  let sql = $('sqlEditor').value.trim();
+  if (!sql) return;
+  syncEditorToTab();
+  const runSql = explain ? 'EXPLAIN ' + sql : sql;
+  $('qMeta').textContent = 'Running…';
+  try {
+    const data = await api('query', { db: state.db || '', sql: runSql });
+    pushHistory(sql);
+    renderQueryResult(data);
+  } catch (e) {
+    renderQueryError(e.message);
+  }
+}
+
+function renderQueryError(msg) {
+  $('qHead').innerHTML = ''; $('qBody').innerHTML = '';
+  const m = $('qMsg');
+  m.className = 'p-lg m-md rounded-lg bg-red-950/30 text-red-400 border border-red-900/50 font-mono text-sm whitespace-pre-wrap text-left';
+  m.textContent = msg;
+  m.classList.remove('hidden');
+  $('qMeta').textContent = 'Error';
+}
+
+function renderQueryResult(data) {
+  const m = $('qMsg');
+  if (data.type === 'exec') {
+    $('qHead').innerHTML = ''; $('qBody').innerHTML = '';
+    m.className = 'p-xl text-center text-on-surface';
+    m.innerHTML = `<span class="material-symbols-outlined text-[40px] text-green-400">check_circle</span><div class="mt-sm">${data.affected} row(s) affected</div>`;
+    m.classList.remove('hidden');
+    $('qMeta').textContent = `${data.affected} affected · ${data.ms}ms`;
+    return;
+  }
+  // result set
+  m.className = 'p-xl text-center text-on-surface-variant opacity-60 hidden';
+  $('qHead').innerHTML = `<tr class="bg-surface-container-highest border-b border-outline-variant">${
+    data.columns.map(c => `<th class="px-md py-sm text-[13px] text-on-surface-variant uppercase tracking-wider">${esc(c.name)}</th>`).join('')
+  }</tr>`;
+  if (!data.rows.length) {
+    $('qBody').innerHTML = '';
+    m.textContent = 'Query returned no rows.'; m.classList.remove('hidden');
+  } else {
+    $('qBody').innerHTML = data.rows.map((r, i) =>
+      `<tr class="border-b border-outline-variant hover:bg-surface-container-highest/50 ${i % 2 ? 'bg-surface-container-low/30' : ''}">${
+        data.columns.map(c => {
+          const v = r[c.name];
+          return `<td class="px-md py-xs">${v === null ? '<span class="opacity-30 italic">NULL</span>' : `<span class="text-on-surface-variant" title="${esc(v)}">${esc(String(v).slice(0, 200))}</span>`}</td>`;
+        }).join('')
+      }</tr>`).join('');
+  }
+  $('qMeta').textContent = `${data.rowCount} row(s) · ${data.ms}ms`;
+  state._lastQuery = data;
+}
+
+// query wiring
+$('btnNewTab').onclick = newQTab;
+$('btnRun').onclick = () => runQuery(false);
+$('btnExplain').onclick = () => runQuery(true);
+$('btnHistory').onclick = toggleHistory;
+$('sqlEditor').addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); runQuery(false); }
+});
+$('sqlEditor').value = qtabs.tabs[qtabs.active].sql;
+renderQTabs();
+
 // ---- boot ----------------------------------------------------------------
 async function boot() {
   renderProfileSelect();
