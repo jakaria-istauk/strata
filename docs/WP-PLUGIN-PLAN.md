@@ -58,6 +58,14 @@ strata-wp/
 
 ---
 
+## Status
+
+- **Phase 1 ✅** — `strata.php` (menu page + manifest enqueue), `class-auth.php` (cap+nonce `guard`), `class-rest.php` `/ping`. Verified: 403 logged-out / non-admin, 200 admin w/ nonce, 403 w/o nonce.
+- **Phase 2 ✅** — `class-db.php` (PDO from wp-config constants + identifier guards ported from api.php), all 17 actions as `strata/v1` routes. Verified each returns the standalone JSON shape.
+- **Phase 3 ✅** — runtime WP detection (`src/lib/wp.ts`), `api.ts` REST+nonce transport, `HashRouter`, ConnModal gate bypassed, `vite.config.wp.ts` → `strata-wp/build/`. Chrome-verified Explorer+grid in wp-admin.
+- **Phase 4 ✅** — no code changes (features already route through the auto-switching `api()`). Chrome-verified in wp-admin: create db→table, row insert/edit, type-to-confirm bulk delete, alter_table, CSV export, SQL editor, Dashboard stats, drop database. Console clean.
+- **Phase 5–6** — pending (WP-aware differentiators; hardening + distribution).
+
 ## Phases — each shippable + verifiable in `wp-admin`
 
 ### Phase 1 — Plugin scaffold + auth spine
