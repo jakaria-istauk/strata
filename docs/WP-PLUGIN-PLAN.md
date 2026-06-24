@@ -67,6 +67,12 @@ strata-wp/
 - **Single-DB lock ✅** — Strata is scoped to the wp-config site DB (`DB_NAME`) only; other schemas on the server are never listed or reachable (cross-tenant privacy). Server-side: `databases`/`create_database`/`drop_database` routes removed; every action forces `site_db()` and ignores any client `db`; `stats.dbCount` fixed at 1; the SQL console has a scope guard blocking `SHOW DATABASES/SCHEMAS`, `USE`, and schema-qualified refs to any schema but the site DB. UI: no DB switcher / create / drop — static "Site DB" label, lands on `/db/<DB_NAME>`, table management intact. Verified via wp eval (404s, tampered `db` ignored, guard 403s) + Chrome.
 - **Phase 5–6** — pending (WP-aware differentiators; hardening + distribution).
 
+### Distribution
+
+- `make wp-zip` builds `strata-wp.zip`, staged under a `strata/` root so it installs as `wp-content/plugins/strata` via **Plugins → Add New → Upload Plugin**.
+- The release workflow (`.github/workflows/release.yml`) builds and attaches `strata-wp.zip` to each GitHub release and copies it into the Pages site, so the landing page serves the current build at `releases/latest/download/strata-wp.zip`.
+- The landing page (`site/index.html`) has a **WordPress** section with the download button. Pending WP.org review — search for the `WP.ORG SWAP` comment to repoint the button at the directory listing (`https://wordpress.org/plugins/strata/`) once approved.
+
 ## Phases — each shippable + verifiable in `wp-admin`
 
 ### Phase 1 — Plugin scaffold + auth spine

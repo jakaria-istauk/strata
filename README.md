@@ -11,6 +11,7 @@ React 18 + TypeScript + Vite + Tailwind front-end (TanStack Query + React Router
 - [Features](#features)
 - [Requirements](#requirements)
 - [Quick start](#quick-start)
+- [WordPress plugin](#wordpress-plugin)
 - [Architecture](#architecture)
 - [Project layout](#project-layout)
 - [Connections & credentials](#connections--credentials)
@@ -58,6 +59,18 @@ make zip         # → strata.zip of dist/; recipient needs only PHP:
 ```
 
 On first load, open **Connections**, add a profile (host, port, user, password), test it, and save. Pick a database from the sidebar to start browsing.
+
+## WordPress plugin
+
+Strata also ships as a WordPress plugin (`strata-wp/`) that re-houses the same React UI + SQL engine inside `wp-admin` as a modern phpMyAdmin replacement. It reads the DB credentials from `wp-config.php` (no creds over the wire), is locked to the site's own database, and gates every REST route with `manage_options` + a nonce.
+
+```bash
+make wp-zip      # → strata-wp.zip (installs as wp-content/plugins/strata)
+```
+
+Install: WP admin → **Plugins → Add New → Upload Plugin** → choose `strata-wp.zip` → Install → Activate, then open **Strata** from the admin menu.
+
+Download a prebuilt `strata-wp.zip` from the [latest release](https://github.com/jakaria-istauk/strata/releases/latest) or the [landing page](https://github.com/jakaria-istauk/strata#readme). A WordPress.org directory listing is pending review; the download links will move there once approved. Plan and status: [docs/WP-PLUGIN-PLAN.md](docs/WP-PLUGIN-PLAN.md).
 
 ## Architecture
 
