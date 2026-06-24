@@ -11,6 +11,8 @@ export interface StrataBoot {
   version: string;
   /** URL to the bundled assets dir (for the logo etc.). */
   assetsUrl: string;
+  /** The one database this plugin may touch (wp-config DB_NAME). */
+  siteDb: string;
 }
 
 export const wpBoot: StrataBoot | null =

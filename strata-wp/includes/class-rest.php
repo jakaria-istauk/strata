@@ -26,24 +26,25 @@ class Strata_REST {
 	 *
 	 * @var array<string,string>
 	 */
+	// Database-level routes (databases list, create_database, drop_database) are
+	// intentionally ABSENT: the plugin is locked to the single site database
+	// (wp-config DB_NAME). Exposing or mutating other schemas on the server would
+	// be a cross-tenant privacy/isolation leak. Every action below is forced to
+	// the site DB server-side (site_db()), so a tampered `db` param can't escape it.
 	private $actions = array(
-		'ping'            => 'ping',
-		'test_connection' => 'test_connection',
-		'databases'       => 'databases',
-		'create_database' => 'create_database',
-		'create_table'    => 'create_table',
-		'drop_database'   => 'drop_database',
-		'drop_table'      => 'drop_table',
-		'alter_table'     => 'alter_table',
-		'tables'          => 'tables',
-		'columns'         => 'columns',
-		'rows'            => 'rows',
-		'export_csv'      => 'export_csv',
-		'row_get'         => 'row_get',
-		'row_save'        => 'row_save',
-		'row_delete'      => 'row_delete',
-		'query'           => 'query',
-		'stats'           => 'stats',
+		'ping'         => 'ping',
+		'create_table' => 'create_table',
+		'drop_table'   => 'drop_table',
+		'alter_table'  => 'alter_table',
+		'tables'       => 'tables',
+		'columns'      => 'columns',
+		'rows'         => 'rows',
+		'export_csv'   => 'export_csv',
+		'row_get'      => 'row_get',
+		'row_save'     => 'row_save',
+		'row_delete'   => 'row_delete',
+		'query'        => 'query',
+		'stats'        => 'stats',
 	);
 
 	/**
@@ -96,6 +97,17 @@ class Strata_REST {
 		return null === $v ? $def : $v;
 	}
 
+	/**
+	 * The one database this plugin may touch: the WP site DB from wp-config.
+	 * Every handler scopes to this and ignores any client-supplied `db`, so a
+	 * tampered request can never reach another schema on the server.
+	 *
+	 * @return string
+	 */
+	private function site_db() {
+		return defined( 'DB_NAME' ) ? DB_NAME : '';
+	}
+
 	// ---- handlers (one per action, mirroring api.php) --------------------
 
 	/** Smoke route — confirms the cap + nonce gate. */
@@ -119,60 +131,8 @@ class Strata_REST {
 		);
 	}
 
-	private function databases( WP_REST_Request $req ) {
-		$p    = Strata_DB::pdo();
-		$rows = $p->query(
-			'SELECT SCHEMA_NAME AS name, DEFAULT_COLLATION_NAME AS collation
-			 FROM information_schema.SCHEMATA ORDER BY SCHEMA_NAME'
-		)->fetchAll();
-		$agg = array();
-		foreach ( $p->query(
-			'SELECT TABLE_SCHEMA AS db, COUNT(*) AS tables,
-					COALESCE(SUM(DATA_LENGTH + INDEX_LENGTH), 0) AS size
-			 FROM information_schema.TABLES GROUP BY TABLE_SCHEMA'
-		)->fetchAll() as $r ) {
-			$agg[ $r['db'] ] = array(
-				'tables' => (int) $r['tables'],
-				'size'   => (int) $r['size'],
-			);
-		}
-		$info = array_map(
-			function ( $r ) use ( $agg ) {
-				$a = $agg[ $r['name'] ] ?? array(
-					'tables' => 0,
-					'size'   => 0,
-				);
-				return array(
-					'name'      => $r['name'],
-					'collation' => $r['collation'],
-					'tables'    => $a['tables'],
-					'size'      => $a['size'],
-				);
-			},
-			$rows
-		);
-		return array(
-			'databases' => array_column( $rows, 'name' ),
-			'info'      => $info,
-		);
-	}
-
-	private function create_database( WP_REST_Request $req ) {
-		$name = Strata_DB::assert_ident( (string) $this->in( $req, 'name', '' ), 'database' );
-		$p    = Strata_DB::pdo();
-		try {
-			$p->exec( 'CREATE DATABASE ' . Strata_DB::qid( $name ) . ' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci' );
-		} catch ( PDOException $e ) {
-			throw new Strata_Fail( 400, $e->getMessage() );
-		}
-		return array(
-			'ok'   => true,
-			'name' => $name,
-		);
-	}
-
 	private function create_table( WP_REST_Request $req ) {
-		$db   = Strata_DB::assert_db( Strata_DB::pdo(), (string) $this->in( $req, 'db', '' ) );
+		$db   = Strata_DB::assert_db( Strata_DB::pdo(), $this->site_db() );
 		$name = Strata_DB::assert_ident( (string) $this->in( $req, 'name', '' ), 'table' );
 		$cols = $this->in( $req, 'columns' );
 		if ( ! is_array( $cols ) || ! $cols ) {
@@ -209,22 +169,9 @@ class Strata_REST {
 		);
 	}
 
-	private function drop_database( WP_REST_Request $req ) {
-		$db = Strata_DB::assert_db( Strata_DB::pdo(), (string) $this->in( $req, 'db', '' ) );
-		try {
-			Strata_DB::pdo()->exec( 'DROP DATABASE ' . Strata_DB::qid( $db ) );
-		} catch ( PDOException $e ) {
-			throw new Strata_Fail( 400, $e->getMessage() );
-		}
-		return array(
-			'ok'      => true,
-			'dropped' => $db,
-		);
-	}
-
 	private function drop_table( WP_REST_Request $req ) {
 		$base  = Strata_DB::pdo();
-		$db    = Strata_DB::assert_db( $base, (string) $this->in( $req, 'db', '' ) );
+		$db    = Strata_DB::assert_db( $base, $this->site_db() );
 		$table = Strata_DB::assert_table( $base, $db, (string) $this->in( $req, 'table', '' ) );
 		try {
 			Strata_DB::pdo( $db )->exec( 'DROP TABLE ' . Strata_DB::qid( $table ) );
@@ -239,7 +186,7 @@ class Strata_REST {
 
 	private function alter_table( WP_REST_Request $req ) {
 		$base  = Strata_DB::pdo();
-		$db    = Strata_DB::assert_db( $base, (string) $this->in( $req, 'db', '' ) );
+		$db    = Strata_DB::assert_db( $base, $this->site_db() );
 		$table = Strata_DB::assert_table( $base, $db, (string) $this->in( $req, 'table', '' ) );
 		$names = array_column( Strata_DB::columns_of( $base, $db, $table ), 'name' );
 
@@ -290,7 +237,7 @@ class Strata_REST {
 	}
 
 	private function tables( WP_REST_Request $req ) {
-		$db   = Strata_DB::assert_db( Strata_DB::pdo(), (string) $this->in( $req, 'db', '' ) );
+		$db   = Strata_DB::assert_db( Strata_DB::pdo(), $this->site_db() );
 		$p    = Strata_DB::pdo();
 		$stmt = $p->prepare(
 			'SELECT TABLE_NAME AS name, TABLE_ROWS AS `rows`, TABLE_TYPE AS type,
@@ -307,7 +254,7 @@ class Strata_REST {
 
 	private function columns( WP_REST_Request $req ) {
 		$base  = Strata_DB::pdo();
-		$db    = Strata_DB::assert_db( $base, (string) $this->in( $req, 'db', '' ) );
+		$db    = Strata_DB::assert_db( $base, $this->site_db() );
 		$table = Strata_DB::assert_table( $base, $db, (string) $this->in( $req, 'table', '' ) );
 		return array(
 			'db'      => $db,
@@ -318,7 +265,7 @@ class Strata_REST {
 
 	private function rows( WP_REST_Request $req ) {
 		$base     = Strata_DB::pdo();
-		$db       = Strata_DB::assert_db( $base, (string) $this->in( $req, 'db', '' ) );
+		$db       = Strata_DB::assert_db( $base, $this->site_db() );
 		$table    = Strata_DB::assert_table( $base, $db, (string) $this->in( $req, 'table', '' ) );
 		$cols     = Strata_DB::columns_of( $base, $db, $table );
 		$colNames = array_column( $cols, 'name' );
@@ -375,7 +322,7 @@ class Strata_REST {
 
 	private function export_csv( WP_REST_Request $req ) {
 		$base     = Strata_DB::pdo();
-		$db       = Strata_DB::assert_db( $base, (string) $this->in( $req, 'db', '' ) );
+		$db       = Strata_DB::assert_db( $base, $this->site_db() );
 		$table    = Strata_DB::assert_table( $base, $db, (string) $this->in( $req, 'table', '' ) );
 		$cols     = Strata_DB::columns_of( $base, $db, $table );
 		$colNames = array_column( $cols, 'name' );
@@ -412,7 +359,7 @@ class Strata_REST {
 
 	private function row_get( WP_REST_Request $req ) {
 		$base   = Strata_DB::pdo();
-		$db     = Strata_DB::assert_db( $base, (string) $this->in( $req, 'db', '' ) );
+		$db     = Strata_DB::assert_db( $base, $this->site_db() );
 		$table  = Strata_DB::assert_table( $base, $db, (string) $this->in( $req, 'table', '' ) );
 		$cols   = Strata_DB::columns_of( $base, $db, $table );
 		$colMap = array();
@@ -449,7 +396,7 @@ class Strata_REST {
 
 	private function row_save( WP_REST_Request $req ) {
 		$base   = Strata_DB::pdo();
-		$db     = Strata_DB::assert_db( $base, (string) $this->in( $req, 'db', '' ) );
+		$db     = Strata_DB::assert_db( $base, $this->site_db() );
 		$table  = Strata_DB::assert_table( $base, $db, (string) $this->in( $req, 'table', '' ) );
 		$cols   = Strata_DB::columns_of( $base, $db, $table );
 		$colMap = array();
@@ -540,7 +487,7 @@ class Strata_REST {
 
 	private function row_delete( WP_REST_Request $req ) {
 		$base   = Strata_DB::pdo();
-		$db     = Strata_DB::assert_db( $base, (string) $this->in( $req, 'db', '' ) );
+		$db     = Strata_DB::assert_db( $base, $this->site_db() );
 		$table  = Strata_DB::assert_table( $base, $db, (string) $this->in( $req, 'table', '' ) );
 		$cols   = Strata_DB::columns_of( $base, $db, $table );
 		$colMap = array();
@@ -583,12 +530,41 @@ class Strata_REST {
 		);
 	}
 
+	/**
+	 * Best-effort guard keeping the raw SQL console inside the site DB.
+	 *
+	 * The PDO connection uses wp-config's (often root) credentials, so without
+	 * this a query could reach another site's schema on a shared server. We
+	 * can't fully sandbox arbitrary SQL in PHP, but we block the common escapes:
+	 * server-wide enumeration (SHOW DATABASES/SCHEMAS), switching DB (USE), and
+	 * schema-qualified table references (FROM/JOIN/UPDATE/INTO `other.table`) to
+	 * any schema other than the site DB. Unqualified `table.column` is untouched.
+	 *
+	 * @param string $sql Raw query.
+	 * @throws Strata_Fail 403 on a cross-database attempt.
+	 */
+	private function assert_query_scope( $sql ) {
+		if ( preg_match( '/\bshow\s+(databases|schemas)\b/i', $sql )
+			|| preg_match( '/\buse\s+[`"\']?[A-Za-z0-9_$]+/i', $sql ) ) {
+			throw new Strata_Fail( 403, 'Cross-database access is disabled — Strata is locked to the site database.' );
+		}
+		$site = strtolower( $this->site_db() );
+		if ( preg_match_all( '/\b(?:from|join|into|update|table)\s+[`"\']?([A-Za-z0-9_$]+)[`"\']?\s*\./i', $sql, $m ) ) {
+			foreach ( $m[1] as $schema ) {
+				if ( strtolower( $schema ) !== $site ) {
+					throw new Strata_Fail( 403, "Cross-database access to `$schema` is disabled — Strata is locked to the site database." );
+				}
+			}
+		}
+	}
+
 	private function query( WP_REST_Request $req ) {
 		$sql = trim( (string) $this->in( $req, 'sql', '' ) );
 		if ( '' === $sql ) {
 			throw new Strata_Fail( 400, 'Empty query' );
 		}
-		$db = (string) $this->in( $req, 'db', '' );
+		$this->assert_query_scope( $sql );
+		$db = $this->site_db();
 		if ( '' !== $db ) {
 			Strata_DB::assert_db( Strata_DB::pdo(), $db );
 		}
@@ -637,8 +613,8 @@ class Strata_REST {
 		}
 		$g          = fn( $k ) => (int) ( $status[ $k ] ?? 0 );
 		$version    = (string) $p->query( 'SELECT VERSION()' )->fetchColumn();
-		$dbCount    = (int) $p->query( 'SELECT COUNT(*) FROM information_schema.SCHEMATA' )->fetchColumn();
-		$db         = (string) $this->in( $req, 'db', '' );
+		$dbCount    = 1; // Locked to the single site DB — never enumerate all schemas.
+		$db         = $this->site_db();
 		$tableCount = 0;
 		$dbSize     = 0;
 		if ( '' !== $db ) {

@@ -115,6 +115,7 @@ function strata_enqueue_assets() {
 			'nonce'     => wp_create_nonce( 'wp_rest' ),
 			'version'   => STRATA_VERSION,
 			'assetsUrl' => esc_url_raw( $base . 'assets' ),
+			'siteDb'    => defined( 'DB_NAME' ) ? DB_NAME : '',
 		)
 	);
 }

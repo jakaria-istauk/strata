@@ -64,6 +64,7 @@ strata-wp/
 - **Phase 2 ✅** — `class-db.php` (PDO from wp-config constants + identifier guards ported from api.php), all 17 actions as `strata/v1` routes. Verified each returns the standalone JSON shape.
 - **Phase 3 ✅** — runtime WP detection (`src/lib/wp.ts`), `api.ts` REST+nonce transport, `HashRouter`, ConnModal gate bypassed, `vite.config.wp.ts` → `strata-wp/build/`. Chrome-verified Explorer+grid in wp-admin.
 - **Phase 4 ✅** — no code changes (features already route through the auto-switching `api()`). Chrome-verified in wp-admin: create db→table, row insert/edit, type-to-confirm bulk delete, alter_table, CSV export, SQL editor, Dashboard stats, drop database. Console clean.
+- **Single-DB lock ✅** — Strata is scoped to the wp-config site DB (`DB_NAME`) only; other schemas on the server are never listed or reachable (cross-tenant privacy). Server-side: `databases`/`create_database`/`drop_database` routes removed; every action forces `site_db()` and ignores any client `db`; `stats.dbCount` fixed at 1; the SQL console has a scope guard blocking `SHOW DATABASES/SCHEMAS`, `USE`, and schema-qualified refs to any schema but the site DB. UI: no DB switcher / create / drop — static "Site DB" label, lands on `/db/<DB_NAME>`, table management intact. Verified via wp eval (404s, tampered `db` ignored, guard 403s) + Chrome.
 - **Phase 5–6** — pending (WP-aware differentiators; hardening + distribution).
 
 ## Phases — each shippable + verifiable in `wp-admin`
@@ -109,6 +110,7 @@ DB admin inside WP = high-value target. Non-negotiable:
 - **Cap check server-side on every REST route** (`manage_options`; multisite → super admin). Never trust the client.
 - **Nonce** on every request (CSRF) via REST `permission_callback`.
 - Creds read from `wp-config.php` constants server-side only — never sent client→server.
+- **Locked to the single site DB (`DB_NAME`).** No route lists/creates/drops databases; every action forces the site DB server-side and ignores any client-supplied `db`; the SQL console guard blocks cross-schema escapes. Exposing other schemas on a shared server would be a cross-tenant leak.
 - Port Strata's identifier whitelisting + bound params intact; reviewers will scrutinize raw SQL execution.
 - Optional read-only mode + audit log for defense-in-depth.
 

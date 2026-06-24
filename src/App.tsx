@@ -2,7 +2,7 @@
 // (Sidebar + routed main). Real db/table browsing lives under /db/:db/...
 
 import { useState } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { Settings, Lock, Sun, Moon, Monitor } from 'lucide-react';
 import ConnModal from './components/ConnModal';
 import Sidebar from './components/Sidebar';
@@ -91,12 +91,19 @@ export default function App() {
         <Sidebar />
         <main className="min-w-0 flex-1 overflow-hidden">
           <Routes>
-            <Route index element={<DatabaseList />} />
+            {/* WP is locked to the single site DB — no database list; land on it. */}
+            <Route
+              index
+              element={IS_WP ? <Navigate to={`/db/${wpBoot!.siteDb}`} replace /> : <DatabaseList />}
+            />
             <Route path="/db/:db" element={<TableOverview />} />
             <Route path="/db/:db/query" element={<QueryEditor />} />
             <Route path="/db/:db/dashboard" element={<Dashboard />} />
             <Route path="/db/:db/table/:table" element={<TableView />} />
-            <Route path="*" element={<DatabaseList />} />
+            <Route
+              path="*"
+              element={IS_WP ? <Navigate to={`/db/${wpBoot!.siteDb}`} replace /> : <DatabaseList />}
+            />
           </Routes>
         </main>
       </div>
