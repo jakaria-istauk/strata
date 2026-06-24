@@ -45,6 +45,14 @@ export default function RowDrawer({
   const toast = useToast();
   const qc = useQueryClient();
 
+  // Play the exit animation before unmounting (parent removes us on onClose).
+  const [closing, setClosing] = useState(false);
+  function requestClose() {
+    if (closing) return;
+    setClosing(true);
+    setTimeout(onClose, 200); // matches slide-out-right duration
+  }
+
   // Edit mode loads the authoritative row by pk.
   const rowQuery = useQuery({
     queryKey: ['row_get', db, table, pk],
@@ -146,11 +154,15 @@ export default function RowDrawer({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex animate-fade-in justify-end bg-black/40"
-      onClick={onClose}
+      className={`strata-overlay fixed inset-0 z-50 flex justify-end bg-black/40 ${
+        closing ? 'animate-fade-out' : 'animate-fade-in'
+      }`}
+      onClick={requestClose}
     >
       <div
-        className="flex h-full w-full max-w-lg animate-slide-in-right flex-col bg-surface shadow-2xl"
+        className={`flex h-full w-full max-w-lg flex-col bg-surface shadow-2xl ${
+          closing ? 'animate-slide-out-right' : 'animate-slide-in-right'
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex items-center justify-between border-b border-outline-variant px-lg py-md">
@@ -161,7 +173,7 @@ export default function RowDrawer({
             <p className="text-xs text-on-surface-variant">{table}</p>
           </div>
           <button
-            onClick={onClose}
+            onClick={requestClose}
             className="rounded-lg p-xs text-on-surface-variant hover:bg-surface-container-high"
             aria-label="Close"
           >
@@ -251,7 +263,7 @@ export default function RowDrawer({
             {mode === 'edit' ? `${dirtyCount} field${dirtyCount === 1 ? '' : 's'} changed` : ''}
           </span>
           <button
-            onClick={onClose}
+            onClick={requestClose}
             className="ml-auto rounded-lg border border-outline-variant px-md py-sm text-sm text-on-surface hover:bg-surface-container-high"
           >
             Cancel

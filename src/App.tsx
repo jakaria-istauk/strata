@@ -65,7 +65,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-background text-on-surface" key={`${profile.id}-${tick}`}>
+    <div className="strata-app flex h-screen flex-col bg-background text-on-surface" key={`${profile.id}-${tick}`}>
       <header className="flex items-center justify-between border-b border-outline-variant px-lg py-md">
         <div className="flex items-center gap-sm">
           <img src={LOGO_SRC} alt="Strata" className="h-6 w-6 rounded" />

@@ -1,0 +1,38 @@
+/* Strata — wp-admin chrome overrides (plugin-only, not part of the SPA bundle).
+ * Loaded on every admin page so the brand menu icon renders correctly
+ * site-wide; layout fixes are scoped to body.toplevel_page_strata so they
+ * only touch the Strata screen. */
+
+/* Brand menu icon — constrain the logo + drop WP's default padding so the
+ * full mark shows at every admin page (not just Strata's own). */
+#adminmenu #toplevel_page_strata .wp-menu-image img {
+	width: 20px;
+	height: 20px;
+	padding: 7px 0;
+}
+
+/* ---- Strata screen only ---- */
+
+/* Kill the 20px gutter between the admin menu and Strata. */
+body.toplevel_page_strata #wpcontent {
+	padding-left: 0;
+}
+
+/* App fills the viewport; remove footer padding and the WP footer so
+ * "Thank you for creating with WordPress." can't overlap the app footer. */
+body.toplevel_page_strata #wpbody-content {
+	padding-bottom: 0;
+}
+body.toplevel_page_strata #wpfooter {
+	display: none;
+}
+
+/* Admin bar steals 32px off the top; keep the app inside the viewport. */
+body.toplevel_page_strata .strata-app {
+	height: calc(100vh - 32px);
+}
+
+/* Drawer/overlay must clear #wpadminbar (z-index 99999). */
+body.toplevel_page_strata .strata-overlay {
+	z-index: 100000;
+}

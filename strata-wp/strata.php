@@ -44,12 +44,22 @@ function strata_admin_menu() {
 		'manage_options',
 		'strata',
 		'strata_render_admin_page',
-		'dashicons-database',
+		STRATA_URL . 'build/assets/strata-logo.png',
 		80
 	);
 	add_action( "load-{$hook}", 'strata_enqueue_assets' );
 }
 add_action( 'admin_menu', 'strata_admin_menu' );
+
+/**
+ * wp-admin chrome overrides — loaded on every admin page so the brand menu
+ * icon renders correctly everywhere; layout rules inside are self-scoped to
+ * the Strata screen. Kept out of the SPA bundle to keep the app CSS clean.
+ */
+function strata_admin_chrome_css() {
+	wp_enqueue_style( 'strata-admin-chrome', STRATA_URL . 'admin.css', array(), STRATA_VERSION );
+}
+add_action( 'admin_enqueue_scripts', 'strata_admin_chrome_css' );
 
 /**
  * Mount point for the SPA.

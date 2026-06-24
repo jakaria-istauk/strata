@@ -51,9 +51,14 @@ export default {
       },
       keyframes: {
         'fade-in': { from: { opacity: '0' }, to: { opacity: '1' } },
+        'fade-out': { from: { opacity: '1' }, to: { opacity: '0' } },
         'slide-in-right': {
           from: { transform: 'translateX(100%)' },
           to: { transform: 'translateX(0)' },
+        },
+        'slide-out-right': {
+          from: { transform: 'translateX(0)' },
+          to: { transform: 'translateX(100%)' },
         },
         'pop-in': {
           from: { opacity: '0', transform: 'scale(0.96)' },
@@ -62,7 +67,9 @@ export default {
       },
       animation: {
         'fade-in': 'fade-in 0.15s ease-out',
+        'fade-out': 'fade-out 0.2s ease-in forwards',
         'slide-in-right': 'slide-in-right 0.2s ease-out',
+        'slide-out-right': 'slide-out-right 0.2s ease-in forwards',
         'pop-in': 'pop-in 0.15s ease-out',
       },
     },
