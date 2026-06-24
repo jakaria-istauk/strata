@@ -237,7 +237,7 @@
           Quick start
         </a>
       </div>
-      <p class="hint">Latest release · needs only <code>PHP 8.x</code> with <code>pdo_mysql</code> — no Node, no Composer.</p>
+      <p class="hint">Latest release<span id="ver"></span> · needs only <code>PHP 8.x</code> with <code>pdo_mysql</code> — no Node, no Composer.</p>
 
       <div class="shot">
         <div class="shot-bar"><i class="r"></i><i class="y"></i><i class="g"></i><span>strata · wp · wp_users</span></div>
@@ -401,9 +401,17 @@ php -S 127.0.0.1:8000
 
   <footer>
     <div class="wrap foot">
-      <span>Strata — self-hosted MySQL admin. MIT-style open source.</span>
+      <span>Strata — self-hosted MySQL admin. Built by <a href="https://github.com/jakaria-istauk">Jakaria Istauk</a>. MIT-style open source.</span>
       <span><a href="https://github.com/jakaria-istauk/strata">GitHub</a> · <a href="https://github.com/jakaria-istauk/strata/releases">Releases</a></span>
     </div>
   </footer>
+
+  <!-- Show the current release tag next to "Latest release" (kept correct automatically). -->
+  <script>
+    fetch('https://api.github.com/repos/jakaria-istauk/strata/releases/latest')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d && d.tag_name) document.getElementById('ver').textContent = ' ' + d.tag_name; })
+      .catch(() => {});
+  </script>
 </body>
 </html>

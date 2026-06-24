@@ -189,6 +189,19 @@ export default function Sidebar() {
         </ul>
       </nav>
 
+      {/* Version badge */}
+      <div className="border-t border-outline-variant px-sm py-xs text-center text-xs text-on-surface-variant">
+        <a
+          href="https://github.com/jakaria-istauk/strata/releases"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-mono hover:text-on-surface"
+          title="View releases on GitHub"
+        >
+          Strata v{__APP_VERSION__}
+        </a>
+      </div>
+
       {showNewDb && (
         <NewDbModal
           onClose={() => setShowNewDb(false)}

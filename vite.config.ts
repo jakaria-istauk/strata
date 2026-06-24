@@ -1,5 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+// Single source of truth for the app version: package.json (bump it per release).
+import pkg from './package.json';
 
 // Dev (`npm run dev`, :5173): proxy /api.php to Herd so the SPA and the PHP
 //   gateway share an origin — no separate `php -S` needed (Herd runs PHP+MySQL).
@@ -8,6 +10,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   base: '/',
+  define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   build: { outDir: 'dist', emptyOutDir: true },
   server: {
     proxy: {
