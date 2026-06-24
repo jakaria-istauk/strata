@@ -33,9 +33,16 @@ export default function TableView() {
   const dir = (params.get('dir') === 'DESC' ? 'DESC' : 'ASC') as 'ASC' | 'DESC';
   const search = params.get('search') ?? '';
 
-  // Local search field, synced to URL on submit (avoids a request per keystroke).
+  // Local search field, synced to URL. Debounced search-as-you-type (300ms);
+  // Enter still submits immediately via the form below.
   const [searchInput, setSearchInput] = useState(search);
   useEffect(() => setSearchInput(search), [search]);
+  useEffect(() => {
+    if (searchInput === search) return;
+    const t = setTimeout(() => patch({ search: searchInput || null, page: null }), 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchInput]);
 
   // Hidden columns — in-memory only (resets when the table changes).
   const [hidden, setHidden] = useState<string[]>([]);
