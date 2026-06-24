@@ -1,0 +1,66 @@
+name: Release
+
+# On every published release: build the app, attach strata.zip to the release,
+# and (re)deploy the landing page to GitHub Pages.
+# Also deployable manually via the Actions tab.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write   # upload the zip as a release asset
+  pages: write      # deploy to GitHub Pages
+  id-token: write   # OIDC token for the Pages deploy
+
+# One release/deploy at a time; don't cancel an in-flight publish.
+concurrency:
+  group: release-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build app + zip bundle
+        run: make zip   # → dist/ then strata.zip (built app only; recipient needs PHP)
+
+      # Attach strata.zip to the release that triggered this run.
+      # The landing page's download button points at
+      #   releases/latest/download/strata.zip — so this keeps it current.
+      - name: Attach strata.zip to release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" strata.zip --clobber
+
+      # Build the Pages artifact from site/. Include strata.zip too, so the page
+      # can also be served a copy at <pages-url>/strata.zip if ever needed.
+      - name: Assemble Pages site
+        run: cp strata.zip site/strata.zip
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4

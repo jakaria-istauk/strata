@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Strata — a modern, self-hosted MySQL admin client</title>
+  <meta name="description" content="Strata is a modern, self-hosted MySQL admin client — a React SPA over a thin PHP + PDO JSON API. Browse data, run SQL, manage schema. Your credentials never leave your browser." />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Strata — modern self-hosted MySQL admin" />
+  <meta property="og:description" content="Browse data, run SQL, manage schema. Stateless PHP backend, all state in your browser." />
+  <meta property="og:image" content="strata-logo.png" />
+
+  <link rel="icon" type="image/png" href="strata-logo.png" />
+  <style>
+    :root {
+      --primary: 129 140 248;
+      --primary-strong: 99 102 241;
+      --bg: 18 19 25;
+      --bg-lowest: 13 14 20;
+      --surface: 31 31 38;
+      --surface-high: 41 41 48;
+      --on-bg: 228 225 235;
+      --muted: 158 158 175;
+      --outline: 69 70 83;
+      --success: 110 231 183;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: rgb(var(--bg));
+      color: rgb(var(--on-bg));
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+    a { color: inherit; text-decoration: none; }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+    /* ambient glow */
+    .glow {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(60% 50% at 50% -5%, rgba(99,102,241,.28), transparent 70%),
+        radial-gradient(40% 40% at 90% 10%, rgba(129,140,248,.14), transparent 70%);
+    }
+    main { position: relative; z-index: 1; }
+
+    /* nav */
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 22px 0; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; letter-spacing: -.02em; }
+    .brand img { width: 30px; height: 30px; border-radius: 7px; }
+    .nav-links { display: flex; align-items: center; gap: 26px; font-size: 14px; color: rgb(var(--muted)); }
+    .nav-links a:hover { color: rgb(var(--on-bg)); }
+    .ghbtn {
+      display: inline-flex; align-items: center; gap: 8px;
+      border: 1px solid rgb(var(--outline)); border-radius: 9px;
+      padding: 8px 14px; font-size: 14px; font-weight: 600;
+      transition: border-color .15s, background .15s;
+    }
+    .ghbtn:hover { border-color: rgb(var(--primary)); background: rgba(129,140,248,.08); }
+
+    /* hero */
+    header { text-align: center; padding: 72px 0 56px; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 13px; color: rgb(var(--primary));
+      border: 1px solid rgba(129,140,248,.35); border-radius: 999px;
+      padding: 5px 14px; margin-bottom: 28px; background: rgba(129,140,248,.06);
+    }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: rgb(var(--success)); box-shadow: 0 0 8px rgb(var(--success)); }
+    h1 {
+      font-size: clamp(38px, 6vw, 64px); line-height: 1.05; letter-spacing: -.03em;
+      font-weight: 800; margin-bottom: 22px;
+    }
+    h1 .grad {
+      background: linear-gradient(120deg, rgb(var(--primary)), #c4b5fd 60%, #f0abfc);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .sub { font-size: clamp(16px, 2.2vw, 20px); color: rgb(var(--muted)); max-width: 620px; margin: 0 auto 38px; }
+
+    .cta { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: linear-gradient(120deg, rgb(var(--primary-strong)), rgb(var(--primary)));
+      color: #fff; font-weight: 700; font-size: 16px;
+      padding: 14px 26px; border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(99,102,241,.4);
+      transition: transform .15s, box-shadow .15s;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 38px rgba(99,102,241,.55); }
+    .btn-ghost {
+      display: inline-flex; align-items: center; gap: 10px;
+      border: 1px solid rgb(var(--outline)); border-radius: 12px;
+      padding: 14px 24px; font-weight: 600; font-size: 16px; color: rgb(var(--on-bg));
+      transition: border-color .15s, background .15s;
+    }
+    .btn-ghost:hover { border-color: rgb(var(--primary)); background: rgba(129,140,248,.08); }
+    .hint { margin-top: 16px; font-size: 13px; color: rgb(var(--muted)); }
+    .hint code { background: rgb(var(--surface)); padding: 2px 7px; border-radius: 5px; font-family: ui-monospace, "JetBrains Mono", monospace; font-size: 12px; }
+
+    /* screenshot frame */
+    .shot {
+      margin: 56px auto 0; max-width: 940px;
+      border: 1px solid rgb(var(--outline)); border-radius: 16px;
+      background: rgb(var(--bg-lowest)); overflow: hidden;
+      box-shadow: 0 30px 80px rgba(0,0,0,.5);
+    }
+    .shot-bar { display: flex; align-items: center; gap: 7px; padding: 12px 16px; border-bottom: 1px solid rgb(var(--outline)); }
+    .shot-bar i { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+    .shot-bar .r { background: #ff5f57; } .shot-bar .y { background: #febc2e; } .shot-bar .g { background: #28c840; }
+    .shot-bar span { margin-left: 12px; font-size: 12px; color: rgb(var(--muted)); font-family: ui-monospace, monospace; }
+    .shot-body { display: grid; grid-template-columns: 180px 1fr; min-height: 320px; }
+    .shot-side { border-right: 1px solid rgb(var(--outline)); padding: 16px 14px; background: rgb(var(--surface)); }
+    .shot-side b { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: rgb(var(--muted)); }
+    .shot-side ul { list-style: none; margin-top: 12px; display: flex; flex-direction: column; gap: 4px; }
+    .shot-side li { padding: 7px 10px; border-radius: 7px; font-size: 13px; color: rgb(var(--muted)); }
+    .shot-side li.on { background: rgba(129,140,248,.14); color: rgb(var(--on-bg)); }
+    .shot-main { padding: 0; }
+    .row-h, .row-d { display: grid; grid-template-columns: 60px 1.4fr 1.6fr 90px; gap: 0; }
+    .row-h div { padding: 11px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: rgb(var(--muted)); border-bottom: 1px solid rgb(var(--outline)); }
+    .row-d div { padding: 11px 14px; font-size: 13px; border-bottom: 1px solid rgba(69,70,83,.5); color: rgb(var(--on-bg)); }
+    .row-d .k { color: rgb(var(--primary)); }
+    .row-d .nul { color: rgb(var(--muted)); font-style: italic; }
+
+    /* features */
+    section { padding: 84px 0; }
+    .eyebrow { text-align: center; color: rgb(var(--primary)); font-size: 13px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 12px; }
+    h2 { text-align: center; font-size: clamp(28px, 4vw, 40px); letter-spacing: -.02em; font-weight: 800; margin-bottom: 14px; }
+    .lead { text-align: center; color: rgb(var(--muted)); max-width: 560px; margin: 0 auto 52px; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    .card {
+      border: 1px solid rgb(var(--outline)); border-radius: 14px;
+      padding: 24px; background: rgba(31,31,38,.5);
+      transition: border-color .15s, transform .15s;
+    }
+    .card:hover { border-color: rgba(129,140,248,.5); transform: translateY(-3px); }
+    .card .ico { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; background: rgba(129,140,248,.14); color: rgb(var(--primary)); margin-bottom: 16px; }
+    .card h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; letter-spacing: -.01em; }
+    .card p { font-size: 14px; color: rgb(var(--muted)); }
+
+    /* quick start */
+    .qs { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; }
+    .qs > * { min-width: 0; }   /* keep wide <pre> lines inside the column (scroll, don't stretch) */
+    .qs h2, .qs .lead { text-align: left; margin-left: 0; }
+    .qs ol { list-style: none; counter-reset: s; display: flex; flex-direction: column; gap: 18px; }
+    .qs li { counter-increment: s; position: relative; padding-left: 44px; }
+    .qs li::before {
+      content: counter(s); position: absolute; left: 0; top: 0;
+      width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center;
+      background: rgba(129,140,248,.14); color: rgb(var(--primary)); font-weight: 700; font-size: 14px;
+    }
+    .qs li b { display: block; margin-bottom: 2px; }
+    .qs li span { color: rgb(var(--muted)); font-size: 14px; }
+    pre {
+      background: rgb(var(--bg-lowest)); border: 1px solid rgb(var(--outline));
+      border-radius: 14px; padding: 22px; overflow-x: auto;
+      font-family: ui-monospace, "JetBrains Mono", monospace; font-size: 13.5px; line-height: 1.9;
+    }
+    pre { margin: 0; }
+    pre .c { color: rgb(var(--muted)); }
+    pre .p { color: rgb(var(--primary)); }
+    pre .g { color: rgb(var(--success)); }
+
+    /* CSS-only server tabs */
+    .tabs input { position: absolute; opacity: 0; pointer-events: none; }
+    .tablist { display: flex; flex-wrap: nowrap; gap: 6px; margin-bottom: 14px; }
+    .tablist label {
+      display: inline-flex; align-items: center; justify-content: center; cursor: pointer; white-space: nowrap;
+      border: 1px solid rgb(var(--outline)); border-radius: 9px; flex: 1 1 auto;
+      padding: 8px 10px; font-size: 12.5px; font-weight: 600; color: rgb(var(--muted));
+      transition: border-color .15s, color .15s, background .15s;
+    }
+    .tablist label:hover { color: rgb(var(--on-bg)); }
+    .panel { display: none; }
+    /* radio :checked → highlight its label + show its panel (order-based pairing) */
+    #srv-xampp:checked  ~ .tablist label[for=srv-xampp],
+    #srv-wamp:checked   ~ .tablist label[for=srv-wamp],
+    #srv-herd:checked   ~ .tablist label[for=srv-herd],
+    #srv-php:checked    ~ .tablist label[for=srv-php] {
+      border-color: rgb(var(--primary)); color: rgb(var(--on-bg)); background: rgba(129,140,248,.12);
+    }
+    #srv-xampp:checked ~ .panels .p-xampp,
+    #srv-wamp:checked  ~ .panels .p-wamp,
+    #srv-herd:checked  ~ .panels .p-herd,
+    #srv-php:checked   ~ .panels .p-php { display: block; }
+    .note { margin-top: 12px; font-size: 12.5px; color: rgb(var(--muted)); }
+    .note code { background: rgb(var(--surface)); padding: 1px 6px; border-radius: 5px; font-family: ui-monospace, monospace; font-size: 11.5px; }
+
+    /* download band */
+    .band {
+      text-align: center; border: 1px solid rgba(129,140,248,.3); border-radius: 20px;
+      padding: 56px 24px; background: radial-gradient(60% 120% at 50% 0%, rgba(99,102,241,.18), transparent 70%);
+    }
+
+    footer { border-top: 1px solid rgb(var(--outline)); padding: 36px 0; margin-top: 40px; }
+    .foot { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; color: rgb(var(--muted)); font-size: 14px; }
+    .foot a:hover { color: rgb(var(--on-bg)); }
+
+    @media (max-width: 760px) {
+      .grid { grid-template-columns: 1fr; }
+      .qs { grid-template-columns: 1fr; }
+      .shot-body { grid-template-columns: 1fr; }
+      .shot-side { display: none; }
+      .nav-links a:not(.ghbtn) { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="glow"></div>
+  <main class="wrap">
+    <nav>
+      <a class="brand" href="#"><img src="strata-logo.png" alt="Strata logo" /> Strata</a>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#start">Quick start</a>
+        <a class="ghbtn" href="https://github.com/jakaria-istauk/strata" target="_blank" rel="noopener">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          GitHub
+        </a>
+      </div>
+    </nav>
+
+    <header>
+      <div class="pill"><span class="dot"></span> Open source · self-hosted · zero config</div>
+      <h1>The modern <span class="grad">MySQL admin</span><br />client you self-host.</h1>
+      <p class="sub">A fast React SPA over a thin PHP + PDO JSON API. Browse data, run SQL, and manage schema — your database credentials never leave your browser.</p>
+      <div class="cta">
+        <a class="btn-primary" href="https://github.com/jakaria-istauk/strata/releases/latest/download/strata.zip">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download strata.zip
+        </a>
+        <a class="btn-ghost" href="#start">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+          Quick start
+        </a>
+      </div>
+      <p class="hint">Latest release · needs only <code>PHP 8.x</code> with <code>pdo_mysql</code> — no Node, no Composer.</p>
+
+      <div class="shot">
+        <div class="shot-bar"><i class="r"></i><i class="y"></i><i class="g"></i><span>strata · wp · wp_users</span></div>
+        <div class="shot-body">
+          <div class="shot-side">
+            <b>wp</b>
+            <ul>
+              <li class="on">wp_users</li>
+              <li>wp_posts</li>
+              <li>wp_options</li>
+              <li>wp_postmeta</li>
+              <li>wp_terms</li>
+            </ul>
+          </div>
+          <div class="shot-main">
+            <div class="row-h"><div>ID</div><div>user_login</div><div>user_email</div><div>status</div></div>
+            <div class="row-d"><div class="k">1</div><div>admin</div><div>admin@site.dev</div><div>0</div></div>
+            <div class="row-d"><div class="k">2</div><div>editor</div><div>jane@site.dev</div><div>0</div></div>
+            <div class="row-d"><div class="k">3</div><div>author</div><div class="nul">NULL</div><div>0</div></div>
+            <div class="row-d"><div class="k">4</div><div>contributor</div><div>ck@site.dev</div><div>1</div></div>
+            <div class="row-d"><div class="k">5</div><div>subscriber</div><div>sub@site.dev</div><div>0</div></div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <section id="features">
+      <div class="eyebrow">Everything you need</div>
+      <h2>A full admin client, not a query box</h2>
+      <p class="lead">Data browsing, row editing, schema operations, raw SQL, and live server metrics — in one fast, themeable interface.</p>
+      <div class="grid">
+        <div class="card">
+          <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg></div>
+          <h3>Data Browser</h3>
+          <p>Sortable, searchable, paginated grids with foreign-key links, per-table column show/hide, and full-table CSV export.</p>
+        </div>
+        <div class="card">
+          <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></div>
+          <h3>Row CRUD</h3>
+          <p>Slide-in drawer to view, edit, and insert rows. Per-field NULL toggles, server-side md5/sha hashing, transactional bulk delete.</p>
+        </div>
+        <div class="card">
+          <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div>
+          <h3>Schema ops</h3>
+          <p>Create and drop databases, build tables with a column builder, alter columns. Every destructive action is type-to-confirm.</p>
+        </div>
+        <div class="card">
+          <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></div>
+          <h3>SQL editor</h3>
+          <p>Run arbitrary SQL with ⌘/Ctrl+Enter. Result grid vs affected-rows, query timing, and a localStorage query history.</p>
+        </div>
+        <div class="card">
+          <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></div>
+          <h3>Live dashboard</h3>
+          <p>Server metrics — connections, uptime, questions, slow queries, DB and table counts and size — plus a query-type breakdown.</p>
+        </div>
+        <div class="card">
+          <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7Z"/><circle cx="12" cy="9" r="2.5"/></svg></div>
+          <h3>Stateless &amp; private</h3>
+          <p>Credentials and all app state live in your browser's localStorage. The PHP backend is stateless and holds no config or secrets.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="start">
+      <div class="qs">
+        <div>
+          <div class="eyebrow" style="text-align:left">Up in 60 seconds</div>
+          <h2>Quick start</h2>
+          <p class="lead">Drop the prebuilt bundle into any PHP host — XAMPP, WAMP, Herd, Valet — or run PHP standalone. No build step. Pick your stack →</p>
+          <ol>
+            <li><b>Download &amp; unzip</b><span>Grab <code>strata.zip</code> from the latest release and unzip it.</span></li>
+            <li><b>Put it where PHP runs</b><span>A web root (XAMPP/WAMP) or a parked dir (Herd/Valet) — or just serve it yourself.</span></li>
+            <li><b>Open &amp; connect</b><span>Visit the URL, add a connection profile, start browsing.</span></li>
+          </ol>
+        </div>
+        <div class="tabs">
+          <input type="radio" name="srv" id="srv-xampp" checked />
+          <input type="radio" name="srv" id="srv-wamp" />
+          <input type="radio" name="srv" id="srv-herd" />
+          <input type="radio" name="srv" id="srv-php" />
+
+          <div class="tablist">
+            <label for="srv-xampp">XAMPP</label>
+            <label for="srv-wamp">WAMP</label>
+            <label for="srv-herd">Herd · Valet</label>
+            <label for="srv-php">Standalone PHP</label>
+          </div>
+
+          <div class="panels">
+            <div class="panel p-xampp">
+<pre><span class="c"># 1 — unzip into the Apache web root</span>
+unzip strata.zip -d htdocs/strata
+<span class="c">#   C:\xampp\htdocs (Win) · XAMPP/htdocs (Mac)</span>
+
+<span class="c"># 2 — start Apache in the XAMPP Control Panel</span>
+<span class="c">#     (no php -S needed)</span>
+
+<span class="c"># 3 — open it</span>
+<span class="g">→</span> http://localhost/strata/</pre>
+              <p class="note">Apache already runs PHP — skip <code>php -S</code>. MySQL is the one bundled with XAMPP (host <code>127.0.0.1</code>, user <code>root</code>).</p>
+            </div>
+
+            <div class="panel p-wamp">
+<pre><span class="c"># 1 — unzip into the WAMP web root</span>
+unzip strata.zip -d C:\wamp64\www\strata
+
+<span class="c"># 2 — start WAMP, wait for the tray icon to go green</span>
+
+<span class="c"># 3 — open it</span>
+<span class="g">→</span> http://localhost/strata/</pre>
+              <p class="note">WAMP's Apache serves the PHP for you. Connect to WAMP's MySQL/MariaDB on <code>127.0.0.1:3306</code>.</p>
+            </div>
+
+            <div class="panel p-herd">
+<pre><span class="c"># 1 — unzip into a parked / linked directory</span>
+unzip strata.zip -d strata
+<span class="p">cd</span> strata
+
+<span class="c"># 2a — Herd: drop the folder in your parked path, or</span>
+<span class="c"># 2b — Valet: link it</span>
+valet link strata
+
+<span class="c"># 3 — open the auto domain</span>
+<span class="g">→</span> http://strata.test/</pre>
+              <p class="note">Herd &amp; Valet auto-serve the folder over PHP — no server command. Use a non-HTTPS <code>http://</code> link unless you ran <code>valet secure</code>.</p>
+            </div>
+
+            <div class="panel p-php">
+<pre><span class="c"># 1 — unzip the bundle</span>
+unzip strata.zip -d strata
+<span class="p">cd</span> strata
+
+<span class="c"># 2 — serve it (PHP 8.x + pdo_mysql, nothing else)</span>
+php -S 127.0.0.1:8000
+
+<span class="c"># 3 — open it</span>
+<span class="g">→</span> http://127.0.0.1:8000/</pre>
+              <p class="note">Zero install beyond PHP itself — point Strata at any reachable MySQL/MariaDB.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="band">
+        <div class="eyebrow">Ready when you are</div>
+        <h2>Self-host Strata today</h2>
+        <p class="lead" style="margin-bottom:34px">One zip — drop it in XAMPP, WAMP, Herd, Valet, or plain PHP. Free and open source.</p>
+        <div class="cta">
+          <a class="btn-primary" href="https://github.com/jakaria-istauk/strata/releases/latest/download/strata.zip">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download strata.zip
+          </a>
+          <a class="btn-ghost" href="https://github.com/jakaria-istauk/strata" target="_blank" rel="noopener">View source</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap foot">
+      <span>Strata — self-hosted MySQL admin. MIT-style open source.</span>
+      <span><a href="https://github.com/jakaria-istauk/strata">GitHub</a> · <a href="https://github.com/jakaria-istauk/strata/releases">Releases</a></span>
+    </div>
+  </footer>
+</body>
+</html>
