@@ -2,7 +2,7 @@
 // (Sidebar + routed main). Real db/table browsing lives under /db/:db/...
 
 import { useState } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { Settings, Lock, Sun, Moon, Monitor } from 'lucide-react';
 import ConnModal from './components/ConnModal';
 import Sidebar from './components/Sidebar';
@@ -13,6 +13,9 @@ import DatabaseList from './routes/DatabaseList';
 import TableOverview from './routes/TableOverview';
 import { getActiveProfile, needsPassword, setSessionPassword } from './lib/profiles';
 import { setTheme, getTheme, type ThemeMode } from './lib/theme';
+import { IS_WP, wpBoot } from './lib/wp';
+
+const LOGO_SRC = IS_WP ? `${wpBoot!.assetsUrl}/strata-logo.png` : '/assets/strata-logo.png';
 
 export default function App() {
   // Bump to force a re-read of profile state after CRUD / connect / unlock.
@@ -20,8 +23,12 @@ export default function App() {
   const refresh = () => setTick((t) => t + 1);
   const [showConn, setShowConn] = useState(false);
 
-  const profile = getActiveProfile();
-  const locked = profile ? needsPassword(profile) : false;
+  // WP host: the site DB is auto-connected (creds in wp-config), so the
+  // ConnModal / password gate is skipped and a synthetic profile drives the UI.
+  const profile = IS_WP
+    ? { id: 'wp', name: 'Site DB' }
+    : getActiveProfile();
+  const locked = IS_WP ? false : profile ? needsPassword(profile as never) : false;
 
   // No active profile → force the connection manager (non-dismissable).
   if (!profile) {
@@ -58,10 +65,10 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-background text-on-surface" key={`${profile.id}-${tick}`}>
+    <div className="strata-app flex h-screen flex-col bg-background text-on-surface" key={`${profile.id}-${tick}`}>
       <header className="flex items-center justify-between border-b border-outline-variant px-lg py-md">
         <div className="flex items-center gap-sm">
-          <img src="/assets/strata-logo.png" alt="Strata" className="h-6 w-6 rounded" />
+          <img src={LOGO_SRC} alt="Strata" className="h-6 w-6 rounded" />
           <span className="font-display text-lg font-semibold text-primary">Strata</span>
           <span className="ml-sm rounded-full bg-secondary-container px-sm py-xs text-xs text-on-secondary-container">
             {profile.name}
@@ -69,12 +76,14 @@ export default function App() {
         </div>
         <div className="flex items-center gap-sm">
           <ThemeToggle />
-          <button
-            onClick={() => setShowConn(true)}
-            className="flex items-center gap-sm rounded-lg border border-outline-variant px-md py-sm text-sm hover:bg-surface-container-high"
-          >
-            <Settings size={16} /> Connections
-          </button>
+          {!IS_WP && (
+            <button
+              onClick={() => setShowConn(true)}
+              className="flex items-center gap-sm rounded-lg border border-outline-variant px-md py-sm text-sm hover:bg-surface-container-high"
+            >
+              <Settings size={16} /> Connections
+            </button>
+          )}
         </div>
       </header>
 
@@ -82,17 +91,24 @@ export default function App() {
         <Sidebar />
         <main className="min-w-0 flex-1 overflow-hidden">
           <Routes>
-            <Route index element={<DatabaseList />} />
+            {/* WP is locked to the single site DB — no database list; land on it. */}
+            <Route
+              index
+              element={IS_WP ? <Navigate to={`/db/${wpBoot!.siteDb}`} replace /> : <DatabaseList />}
+            />
             <Route path="/db/:db" element={<TableOverview />} />
             <Route path="/db/:db/query" element={<QueryEditor />} />
             <Route path="/db/:db/dashboard" element={<Dashboard />} />
             <Route path="/db/:db/table/:table" element={<TableView />} />
-            <Route path="*" element={<DatabaseList />} />
+            <Route
+              path="*"
+              element={IS_WP ? <Navigate to={`/db/${wpBoot!.siteDb}`} replace /> : <DatabaseList />}
+            />
           </Routes>
         </main>
       </div>
 
-      {showConn && (
+      {!IS_WP && showConn && (
         <ConnModal
           dismissable
           onClose={() => setShowConn(false)}

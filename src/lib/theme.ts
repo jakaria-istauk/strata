@@ -20,6 +20,11 @@ export function setTheme(mode: ThemeMode) {
   applyTheme(mode);
 }
 
+// Apply on module load. Standalone already ran the pre-paint script in
+// index.html; WP has no such entry, so this is the only thing that themes
+// the SPA before the user touches the toggle.
+applyTheme(getTheme());
+
 // Re-apply on OS change while in system mode.
 mql.addEventListener('change', () => {
   if (getTheme() === 'system') applyTheme('system');

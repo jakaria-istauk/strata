@@ -216,6 +216,7 @@
       <div class="nav-links">
         <a href="#features">Features</a>
         <a href="#start">Quick start</a>
+        <a href="#wordpress">WordPress</a>
         <a class="ghbtn" href="https://github.com/jakaria-istauk/strata" target="_blank" rel="noopener">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
           GitHub
@@ -377,6 +378,59 @@ php -S 127.0.0.1:8000
 <span class="c"># 3 — open it</span>
 <span class="g">→</span> http://127.0.0.1:8000/</pre>
               <p class="note">Zero install beyond PHP itself — point Strata at any reachable MySQL/MariaDB.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="wordpress">
+      <div class="eyebrow">Also for WordPress</div>
+      <h2>Strata, right inside wp-admin</h2>
+      <p class="lead">The same modern UI and SQL engine, re-housed as a WordPress plugin — a drop-in phpMyAdmin replacement. Zero config: it reads your DB credentials from <code>wp-config.php</code> and is locked to your site's database.</p>
+
+      <div class="qs">
+        <div>
+          <div class="eyebrow" style="text-align:left">No credentials, no setup</div>
+          <h2>Install the plugin</h2>
+          <p class="lead">Download the zip and upload it from your dashboard — every request is gated by <code>manage_options</code> + a REST nonce.</p>
+          <ol>
+            <li><b>Download the plugin</b><span>Grab <code>strata-wp.zip</code> below.</span></li>
+            <li><b>Upload it</b><span>WP admin → <b>Plugins → Add New → Upload Plugin</b> → choose the zip → Install.</span></li>
+            <li><b>Activate &amp; open</b><span>Activate, then open <b>Strata</b> from the admin menu. It connects to your site DB automatically.</span></li>
+          </ol>
+          <div class="cta" style="justify-content:flex-start; margin-top:8px">
+            <!-- WP.ORG SWAP: when the plugin is approved on wordpress.org, repoint this
+                 button to the directory listing (https://wordpress.org/plugins/strata/). -->
+            <a class="btn-primary" href="https://github.com/jakaria-istauk/strata/releases/latest/download/strata-wp.zip">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download Plugin
+            </a>
+          </div>
+          <p class="note" style="margin-top:16px">Free &amp; open source. Works on any WordPress 6.x site running PHP 8.x — no extra setup.</p>
+        </div>
+
+        <div class="tabs">
+          <div class="shot" style="margin:0; box-shadow:none">
+            <div class="shot-bar"><i class="r"></i><i class="y"></i><i class="g"></i><span>wp-admin · Strata</span></div>
+            <div class="shot-body">
+              <div class="shot-side">
+                <b>Site DB</b>
+                <ul>
+                  <li class="on">wp_users</li>
+                  <li>wp_posts</li>
+                  <li>wp_options</li>
+                  <li>wp_postmeta</li>
+                  <li>wp_terms</li>
+                </ul>
+              </div>
+              <div class="shot-main">
+                <div class="row-h"><div>ID</div><div>user_login</div><div>user_email</div><div>role</div></div>
+                <div class="row-d"><div class="k">1</div><div>admin</div><div>admin@site.dev</div><div>administrator</div></div>
+                <div class="row-d"><div class="k">2</div><div>editor</div><div>jane@site.dev</div><div>editor</div></div>
+                <div class="row-d"><div class="k">3</div><div>author</div><div>joe@site.dev</div><div>author</div></div>
+                <div class="row-d"><div class="k">4</div><div>shop</div><div>shop@site.dev</div><div>customer</div></div>
+              </div>
             </div>
           </div>
         </div>

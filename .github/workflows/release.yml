@@ -35,19 +35,22 @@ jobs:
       - name: Build app + zip bundle
         run: make zip   # → dist/ then strata.zip (built app only; recipient needs PHP)
 
-      # Attach strata.zip to the release that triggered this run.
-      # The landing page's download button points at
-      #   releases/latest/download/strata.zip — so this keeps it current.
-      - name: Attach strata.zip to release
+      - name: Build WordPress plugin zip
+        run: make wp-zip   # → strata-wp.zip (installs as wp-content/plugins/strata)
+
+      # Attach both zips to the release that triggered this run.
+      # The landing page's download buttons point at
+      #   releases/latest/download/strata.zip and …/strata-wp.zip — so this keeps them current.
+      - name: Attach zips to release
         if: github.event_name == 'release'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.event.release.tag_name }}" strata.zip --clobber
+        run: gh release upload "${{ github.event.release.tag_name }}" strata.zip strata-wp.zip --clobber
 
-      # Build the Pages artifact from site/. Include strata.zip too, so the page
-      # can also be served a copy at <pages-url>/strata.zip if ever needed.
+      # Build the Pages artifact from site/. Include both zips too, so the page
+      # can also be served a copy at <pages-url>/<zip> if ever needed.
       - name: Assemble Pages site
-        run: cp strata.zip site/strata.zip
+        run: cp strata.zip strata-wp.zip site/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

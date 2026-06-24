@@ -4,7 +4,8 @@
 import { useState } from 'react';
 import { useMatch, useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Table2, Search, Loader2, LayoutDashboard, Terminal, Plus, Trash2 } from 'lucide-react';
+import { Table2, Search, Loader2, LayoutDashboard, Terminal, Plus, Trash2, Database } from 'lucide-react';
+import { IS_WP } from '../lib/wp';
 import { useDatabases } from '../hooks/useDatabases';
 import { useTables } from '../hooks/useTables';
 import DbSelect from './DbSelect';
@@ -51,25 +52,38 @@ export default function Sidebar() {
 
   return (
     <aside className="flex w-64 shrink-0 flex-col border-r border-outline-variant bg-surface-container-low">
-      {/* DB select + new database */}
-      <div className="flex items-center gap-xs border-b border-outline-variant p-sm">
-        <div className="min-w-0 flex-1">
-          <DbSelect
-            databases={databases ?? []}
-            value={db}
-            loading={dbsLoading}
-            onSelect={(d) => navigate(`/db/${encodeURIComponent(d)}`)}
-          />
+      {/* DB select + new database. In WP the plugin is locked to the single
+          site DB, so this is a static label — no switching, create, or drop. */}
+      {IS_WP ? (
+        <div className="flex items-center gap-sm border-b border-outline-variant p-sm">
+          <Database size={16} className="shrink-0 text-on-surface-variant" />
+          <span className="truncate font-medium text-on-surface" title={db}>
+            {db}
+          </span>
+          <span className="ml-auto shrink-0 rounded-full bg-secondary-container px-sm py-xs text-xs text-on-secondary-container">
+            Site DB
+          </span>
         </div>
-        <button
-          onClick={() => setShowNewDb(true)}
-          title="New database"
-          aria-label="New database"
-          className="shrink-0 rounded-lg border border-outline-variant bg-surface p-sm text-on-surface-variant hover:bg-surface-container-high"
-        >
-          <Plus size={16} />
-        </button>
-      </div>
+      ) : (
+        <div className="flex items-center gap-xs border-b border-outline-variant p-sm">
+          <div className="min-w-0 flex-1">
+            <DbSelect
+              databases={databases ?? []}
+              value={db}
+              loading={dbsLoading}
+              onSelect={(d) => navigate(`/db/${encodeURIComponent(d)}`)}
+            />
+          </div>
+          <button
+            onClick={() => setShowNewDb(true)}
+            title="New database"
+            aria-label="New database"
+            className="shrink-0 rounded-lg border border-outline-variant bg-surface p-sm text-on-surface-variant hover:bg-surface-container-high"
+          >
+            <Plus size={16} />
+          </button>
+        </div>
+      )}
 
       {/* Db-scoped nav: dashboard + SQL editor */}
       {db && (
@@ -110,14 +124,17 @@ export default function Sidebar() {
           >
             <Plus size={13} /> Table
           </button>
-          <button
-            onClick={() => setConfirmDropDb(true)}
-            title="Drop database"
-            aria-label="Drop database"
-            className="rounded-lg border border-error/40 p-1 text-error hover:bg-error/10"
-          >
-            <Trash2 size={13} />
-          </button>
+          {/* No drop-database in WP — the site DB must never be droppable. */}
+          {!IS_WP && (
+            <button
+              onClick={() => setConfirmDropDb(true)}
+              title="Drop database"
+              aria-label="Drop database"
+              className="rounded-lg border border-error/40 p-1 text-error hover:bg-error/10"
+            >
+              <Trash2 size={13} />
+            </button>
+          )}
         </div>
       )}
 
