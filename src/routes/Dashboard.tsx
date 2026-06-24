@@ -5,19 +5,8 @@
 import { useParams } from 'react-router-dom';
 import { Loader2, Server, Clock, Database, Table2, HardDrive, Activity } from 'lucide-react';
 import { useStats } from '../hooks/useStats';
+import { fmtBytes } from '../lib/format';
 import type { Stats } from '../types';
-
-function fmtBytes(n: number): string {
-  if (n < 1024) return `${n} B`;
-  const units = ['KB', 'MB', 'GB', 'TB'];
-  let v = n / 1024;
-  let i = 0;
-  while (v >= 1024 && i < units.length - 1) {
-    v /= 1024;
-    i++;
-  }
-  return `${v.toFixed(1)} ${units[i]}`;
-}
 
 function fmtUptime(sec: number): string {
   const d = Math.floor(sec / 86400);

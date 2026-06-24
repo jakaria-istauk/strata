@@ -3,13 +3,14 @@
 
 import { useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { Database, Settings, Lock, Sun, Moon, Monitor } from 'lucide-react';
+import { Settings, Lock, Sun, Moon, Monitor } from 'lucide-react';
 import ConnModal from './components/ConnModal';
 import Sidebar from './components/Sidebar';
 import TableView from './routes/TableView';
 import QueryEditor from './routes/QueryEditor';
 import Dashboard from './routes/Dashboard';
-import Welcome from './routes/Welcome';
+import DatabaseList from './routes/DatabaseList';
+import TableOverview from './routes/TableOverview';
 import { getActiveProfile, needsPassword, setSessionPassword } from './lib/profiles';
 import { setTheme, getTheme, type ThemeMode } from './lib/theme';
 
@@ -60,7 +61,7 @@ export default function App() {
     <div className="flex h-screen flex-col bg-background text-on-surface" key={`${profile.id}-${tick}`}>
       <header className="flex items-center justify-between border-b border-outline-variant px-lg py-md">
         <div className="flex items-center gap-sm">
-          <Database className="text-primary" size={22} />
+          <img src="/assets/strata-logo.png" alt="Strata" className="h-6 w-6 rounded" />
           <span className="font-display text-lg font-semibold text-primary">Strata</span>
           <span className="ml-sm rounded-full bg-secondary-container px-sm py-xs text-xs text-on-secondary-container">
             {profile.name}
@@ -81,12 +82,12 @@ export default function App() {
         <Sidebar />
         <main className="min-w-0 flex-1 overflow-hidden">
           <Routes>
-            <Route index element={<Welcome />} />
-            <Route path="/db/:db" element={<Welcome />} />
+            <Route index element={<DatabaseList />} />
+            <Route path="/db/:db" element={<TableOverview />} />
             <Route path="/db/:db/query" element={<QueryEditor />} />
             <Route path="/db/:db/dashboard" element={<Dashboard />} />
             <Route path="/db/:db/table/:table" element={<TableView />} />
-            <Route path="*" element={<Welcome />} />
+            <Route path="*" element={<DatabaseList />} />
           </Routes>
         </main>
       </div>

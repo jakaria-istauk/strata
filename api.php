@@ -191,10 +191,33 @@ switch ($action) {
     case 'databases': {
         $p = pdo();
         $rows = $p->query(
-            "SELECT SCHEMA_NAME AS name FROM information_schema.SCHEMATA
+            "SELECT SCHEMA_NAME AS name, DEFAULT_COLLATION_NAME AS collation
+             FROM information_schema.SCHEMATA
              ORDER BY SCHEMA_NAME"
         )->fetchAll();
-        ok(['databases' => array_column($rows, 'name')]);
+        // Per-db rollup: table count + size, in one grouped pass.
+        $agg = [];
+        foreach ($p->query(
+            "SELECT TABLE_SCHEMA AS db, COUNT(*) AS tables,
+                    COALESCE(SUM(DATA_LENGTH + INDEX_LENGTH), 0) AS size
+             FROM information_schema.TABLES
+             GROUP BY TABLE_SCHEMA"
+        )->fetchAll() as $r) {
+            $agg[$r['db']] = ['tables' => (int)$r['tables'], 'size' => (int)$r['size']];
+        }
+        $info = array_map(function ($r) use ($agg) {
+            $a = $agg[$r['name']] ?? ['tables' => 0, 'size' => 0];
+            return [
+                'name'      => $r['name'],
+                'collation' => $r['collation'],
+                'tables'    => $a['tables'],
+                'size'      => $a['size'],
+            ];
+        }, $rows);
+        ok([
+            'databases' => array_column($rows, 'name'),
+            'info'      => $info,
+        ]);
     }
 
     case 'create_database': {
@@ -290,7 +313,8 @@ switch ($action) {
         $p  = pdo();
         $stmt = $p->prepare(
             'SELECT TABLE_NAME AS name, TABLE_ROWS AS `rows`, TABLE_TYPE AS type,
-                    ENGINE AS engine, DATA_LENGTH + INDEX_LENGTH AS size
+                    ENGINE AS engine, TABLE_COLLATION AS collation,
+                    DATA_LENGTH + INDEX_LENGTH AS size
              FROM information_schema.TABLES
              WHERE TABLE_SCHEMA = ?
              ORDER BY TABLE_NAME'

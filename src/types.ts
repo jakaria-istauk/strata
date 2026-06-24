@@ -59,6 +59,15 @@ export interface TableInfo {
   rows: number;
   type: string;
   engine: string;
+  collation: string | null;
+  size: number;
+}
+
+/** Per-database rollup (api.php `databases` → `info`). */
+export interface DbInfo {
+  name: string;
+  collation: string | null;
+  tables: number;
   size: number;
 }
 

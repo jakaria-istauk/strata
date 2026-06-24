@@ -76,20 +76,20 @@ export default function Sidebar() {
         <div className="flex gap-xs border-b border-outline-variant p-sm">
           <button
             onClick={() => navigate(`/db/${encodeURIComponent(db)}/dashboard`)}
-            className={`flex flex-1 items-center justify-center gap-sm rounded-lg px-sm py-sm text-sm transition-colors ${
+            className={`flex flex-1 items-center justify-center gap-sm rounded-lg border px-sm py-sm text-sm font-medium transition-colors ${
               dashMatch
-                ? 'bg-secondary-container text-on-secondary-container'
-                : 'text-on-surface hover:bg-surface-container-high'
+                ? 'border-secondary-container bg-secondary-container text-on-secondary-container'
+                : 'border-outline-variant bg-surface text-on-surface hover:bg-surface-container-high'
             }`}
           >
             <LayoutDashboard size={14} /> Dashboard
           </button>
           <button
             onClick={() => navigate(`/db/${encodeURIComponent(db)}/query`)}
-            className={`flex flex-1 items-center justify-center gap-sm rounded-lg px-sm py-sm text-sm transition-colors ${
+            className={`flex flex-1 items-center justify-center gap-sm rounded-lg border px-sm py-sm text-sm font-medium transition-colors ${
               queryMatch
-                ? 'bg-secondary-container text-on-secondary-container'
-                : 'text-on-surface hover:bg-surface-container-high'
+                ? 'border-secondary-container bg-secondary-container text-on-secondary-container'
+                : 'border-outline-variant bg-surface text-on-surface hover:bg-surface-container-high'
             }`}
           >
             <Terminal size={14} /> SQL
@@ -99,7 +99,7 @@ export default function Sidebar() {
 
       {/* Table actions: new table + drop database */}
       {db && (
-        <div className="flex items-center gap-xs border-b border-outline-variant px-sm pt-sm">
+        <div className="flex items-center gap-xs border-b border-outline-variant px-sm py-sm">
           <span className="px-xs text-xs font-medium uppercase tracking-wide text-on-surface-variant">
             Tables
           </span>
@@ -175,12 +175,12 @@ export default function Sidebar() {
                       ? 'bg-secondary-container text-on-secondary-container'
                       : 'text-on-surface hover:bg-surface-container-high'
                   }`}
-                  title={`${t.name} · ${t.rows.toLocaleString()} rows`}
+                  title={`${t.name} · ~${t.rows.toLocaleString()} rows (estimate)`}
                 >
                   <Table2 size={14} className="shrink-0 opacity-70" />
                   <span className="truncate">{t.name}</span>
                   <span className="ml-auto shrink-0 text-xs text-on-surface-variant">
-                    {t.rows.toLocaleString()}
+                    ~{t.rows.toLocaleString()}
                   </span>
                 </button>
               </li>
