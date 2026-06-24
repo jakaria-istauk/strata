@@ -2,10 +2,13 @@ name: Release
 
 # On every published release: build the app, attach strata.zip to the release,
 # and (re)deploy the landing page to GitHub Pages.
+# On every push to master: rebuild + redeploy the landing page (no release assets).
 # Also deployable manually via the Actions tab.
 on:
   release:
     types: [published]
+  push:
+    branches: [master]
   workflow_dispatch:
 
 permissions:
