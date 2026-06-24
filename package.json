@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build && cp api.php dist/api.php",
+    "build:wp": "tsc -b && vite build --config vite.config.wp.ts",
     "preview": "vite preview"
   },
   "dependencies": {

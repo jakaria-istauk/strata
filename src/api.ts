@@ -4,6 +4,20 @@
 
 import type { Conn } from './types';
 import { activeConn } from './lib/profiles';
+import { IS_WP, wpBoot } from './lib/wp';
+
+// Transport differs by host:
+//   standalone → POST /api.php?action=<a>, creds in body `conn`
+//   WordPress  → POST <restUrl>/<a>, X-WP-Nonce header, creds read server-side
+function endpoint(action: string): string {
+  return IS_WP ? `${wpBoot!.restUrl}/${action}` : `/api.php?action=${encodeURIComponent(action)}`;
+}
+
+function headers(): HeadersInit {
+  const h: HeadersInit = { 'Content-Type': 'application/json' };
+  if (IS_WP) h['X-WP-Nonce'] = wpBoot!.nonce;
+  return h;
+}
 
 export class ApiError extends Error {
   constructor(
@@ -27,15 +41,22 @@ export async function api<T = unknown>(
   params: Record<string, unknown> = {},
   opts: ApiOptions = {},
 ): Promise<T> {
-  const conn = opts.conn ?? activeConn(opts.db);
-  if (!conn) throw new ApiError('No active connection.', 400);
+  // WP host: creds come from wp-config server-side, no `conn` in the body.
+  let body: Record<string, unknown>;
+  if (IS_WP) {
+    body = { ...params };
+  } else {
+    const conn = opts.conn ?? activeConn(opts.db);
+    if (!conn) throw new ApiError('No active connection.', 400);
+    body = { conn, ...params };
+  }
 
   let res: Response;
   try {
-    res = await fetch(`/api.php?action=${encodeURIComponent(action)}`, {
+    res = await fetch(endpoint(action), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ conn, ...params }),
+      headers: headers(),
+      body: JSON.stringify(body),
     });
   } catch {
     throw new ApiError('Network error — is the server reachable?', 0);
@@ -68,15 +89,21 @@ export async function exportCsv(
   table: string,
   params: { search?: string; sort?: string; dir?: 'ASC' | 'DESC' } = {},
 ): Promise<void> {
-  const conn = activeConn(db);
-  if (!conn) throw new ApiError('No active connection.', 400);
+  let body: Record<string, unknown>;
+  if (IS_WP) {
+    body = { db, table, ...params };
+  } else {
+    const conn = activeConn(db);
+    if (!conn) throw new ApiError('No active connection.', 400);
+    body = { conn, db, table, ...params };
+  }
 
   let res: Response;
   try {
-    res = await fetch('/api.php?action=export_csv', {
+    res = await fetch(endpoint('export_csv'), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ conn, db, table, ...params }),
+      headers: headers(),
+      body: JSON.stringify(body),
     });
   } catch {
     throw new ApiError('Network error — is the server reachable?', 0);
