@@ -97,7 +97,11 @@ React SPA rebuild (branch `react`). The API (`api.php`) and all its actions abov
 - **Phase 2 (Data layer) ✅** — `api.ts` (typed POST wrapper + `ApiError`), `types.ts`, `lib/profiles.ts` (localStorage profiles, runtime-only passwords, `activeConn()`), `components/ConnModal.tsx` (profile CRUD + `test_connection`); app gated on active connection w/ password re-prompt. Chrome-verified against live MySQL.
 - **Phase 3 (Explorer core) ✅** — `components/Sidebar.tsx` (DbSelect + filterable TableList), `components/Grid.tsx` (sortable headers, PK icon, NULL styling), `components/Pagination.tsx`, `routes/TableView.tsx` (URL-backed page/sort/dir/search) + `routes/Welcome.tsx`; hooks `useDatabases`/`useTables`/`useRows`. BrowserRouter in `main.tsx`; deep-links rely on Herd's SPA fallback. Chrome-verified.
 - **Phase 4 (Row CRUD) ✅** — `RowDrawer` (new/edit + per-field NULL toggle), `lib/formats.ts` per-column hash formats → `transforms` (only new/edited fields), bulk delete via row checkboxes, `ConfirmDanger` (type-to-confirm), `Toast` (provider in `main.tsx`). Chrome-verified.
-- **Phase 5 (Grid polish) 🚧 NEXT** — foreign-key links; full-table CSV export; keyboard shortcuts. (Column show/hide already done.)
-- Phases 6–8: SQL editor + Dashboard · Schema ops · Cutover.
+- **Phase 5 (Grid polish) ✅** — FK links (`rows.fks` → linked cells), full-table CSV export (`exportCsv` in `api.ts`, respects search/sort), keyboard shortcuts (`/` search, `n` new row, `e` export). Column show/hide already done. Chrome-verified.
+- **Phase 6 (SQL editor + Dashboard) ✅** — `routes/QueryEditor.tsx` (`/db/:db/query`: run SQL ⌘/Ctrl+Enter, result grid vs exec, timing, `lib/history.ts` localStorage history), `routes/Dashboard.tsx` (`/db/:db/dashboard`: stats cards + query breakdown), `hooks/useStats.ts`, sidebar nav links. Chrome-verified.
+- **Phase 7 (Schema ops) ✅** — `NewDbModal`, `NewTableModal` (column builder), drop database / drop table (type-to-confirm) wired in `Sidebar` + `StructModal`. Chrome-verified end-to-end (create db → table → drop table → drop db).
+- **Phase 8 (Cutover) ✅** — README/CLAUDE/PLAN updated to the React stack; obsolete vanilla `assets/strata.js`/`strata.css` + duplicate logo removed (logo lives in `public/assets/`).
+
+React SPA rebuild complete — all 8 phases done.
 
 Per-column **formats** (md5/sha1/sha256) are a Strata-only property kept in localStorage (`strata-formats:<db>.<table>`); on row save the client sends `transforms` for new/edited fields and `api.php` hashes server-side. Untouched hashed fields aren't re-hashed on edit. (Lands in the React build at Phase 4/7.)

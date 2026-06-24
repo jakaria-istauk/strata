@@ -83,23 +83,26 @@ api.php  (PHP + PDO, stateless — unchanged)
 - [x] Bulk delete (row checkboxes); ConfirmDanger (type-to-confirm); Toast (`components/Toast.tsx`).
 - **Verified (Chrome):** insert (md5 hash applied server-side), edit name (secret hash NOT re-hashed), select + type-to-confirm delete; toasts + cache invalidation refresh the grid; console clean.
 
-## Phase 5 — Grid polish
+## Phase 5 — Grid polish ✅ DONE
 - [x] Column show/hide (`ColumnToggle`, in-memory per view) — landed early in Phase 3.
-- [ ] Foreign-key links.
-- [ ] Full-table CSV export (streamed). Keyboard shortcuts. Loading/empty/error states.
+- [x] Foreign-key links (`rows.fks` → linked cells navigating to the referenced table).
+- [x] Full-table CSV export (streamed, respects search/sort). Keyboard shortcuts (`/`, `n`, `e`). Loading/empty/error states.
+- **Verified (Chrome):** FK link navigates + filters; CSV downloads matching rows; `n` opens the drawer; console clean.
 
-## Phase 6 — SQL editor + Dashboard
-- [ ] QueryEditor (`/db/:db/query`): run SQL, result grid vs exec, timing, history.
-- [ ] Dashboard (`/db/:db/dashboard`): server stats cards + size breakdown.
+## Phase 6 — SQL editor + Dashboard ✅ DONE
+- [x] QueryEditor (`/db/:db/query`): run SQL (⌘/Ctrl+Enter), result grid vs exec, timing, localStorage history.
+- [x] Dashboard (`/db/:db/dashboard`): server stats cards + query-type breakdown. Sidebar nav links.
+- **Verified (Chrome):** dashboard cards render; query returns grid + timing; history records/replays; console clean.
 
-## Phase 7 — Schema ops
-- [ ] NewDbModal, NewTableModal (column builder).
-- [x] StructModal: alter table (rename/retype/null/AI, add & drop columns), searchable type picker — landed early. _(per-column formats live in the row drawer.)_
-- [ ] Drop database / drop table (type-to-confirm).
+## Phase 7 — Schema ops ✅ DONE
+- [x] NewDbModal, NewTableModal (column builder).
+- [x] StructModal: alter table (rename/retype/null/AI, add & drop columns), searchable type picker. _(per-column formats live in the row drawer.)_
+- [x] Drop database / drop table (type-to-confirm).
+- **Verified (Chrome):** create db → create table → drop table → drop db, full round-trip; console clean.
 
-## Phase 8 — Cutover
-- [ ] Final README + Makefile; CLAUDE.md updated to the React stack.
-- [ ] Remove obsolete vanilla source files from the repo.
+## Phase 8 — Cutover ✅ DONE
+- [x] Final README + Makefile; CLAUDE.md updated to the React stack.
+- [x] Removed obsolete vanilla source files (`assets/strata.js`, `assets/strata.css`, duplicate logo).
 
 ---
 
