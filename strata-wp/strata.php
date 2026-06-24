@@ -48,8 +48,27 @@ function strata_admin_menu() {
 		80
 	);
 	add_action( "load-{$hook}", 'strata_enqueue_assets' );
+	add_action( "load-{$hook}", 'strata_suppress_admin_notices' );
 }
 add_action( 'admin_menu', 'strata_admin_menu' );
+
+/**
+ * Strip all admin notices on the Strata screen so injected notices from
+ * other plugins/core don't break the full-bleed SPA layout. Scoped to the
+ * Strata page load only — leaves every other admin screen untouched.
+ */
+function strata_suppress_admin_notices() {
+	add_action(
+		'in_admin_header',
+		function () {
+			remove_all_actions( 'admin_notices' );
+			remove_all_actions( 'all_admin_notices' );
+			remove_all_actions( 'user_admin_notices' );
+			remove_all_actions( 'network_admin_notices' );
+		},
+		1000
+	);
+}
 
 /**
  * wp-admin chrome overrides — loaded on every admin page so the brand menu
