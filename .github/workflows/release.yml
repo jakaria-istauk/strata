@@ -2,13 +2,16 @@ name: Release
 
 # On every published release: build the app, attach strata.zip to the release,
 # and (re)deploy the landing page to GitHub Pages.
-# On every push to master: rebuild + redeploy the landing page (no release assets).
+# On a push to master that touches site/: redeploy the landing page only.
 # Also deployable manually via the Actions tab.
 on:
   release:
     types: [published]
   push:
     branches: [master]
+    paths:
+      - 'site/**'
+      - '.github/workflows/release.yml'
   workflow_dispatch:
 
 permissions:
@@ -27,18 +30,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Site-only pushes skip the build entirely — they just redeploy site/.
       - uses: actions/setup-node@v4
+        if: github.event_name != 'push'
         with:
           node-version: 20
           cache: npm
 
       - name: Install deps
+        if: github.event_name != 'push'
         run: npm ci
 
       - name: Build app + zip bundle
+        if: github.event_name != 'push'
         run: make zip   # → dist/ then strata.zip (built app only; recipient needs PHP)
 
       - name: Build WordPress plugin zip
+        if: github.event_name != 'push'
         run: make wp-zip   # → strata-wp.zip (installs as wp-content/plugins/strata)
 
       # Attach both zips to the release that triggered this run.
@@ -53,6 +61,7 @@ jobs:
       # Build the Pages artifact from site/. Include both zips too, so the page
       # can also be served a copy at <pages-url>/<zip> if ever needed.
       - name: Assemble Pages site
+        if: github.event_name != 'push'
         run: cp strata.zip strata-wp.zip site/
 
       - name: Upload Pages artifact
