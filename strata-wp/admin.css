@@ -6,9 +6,11 @@
 /* Brand menu icon — constrain the logo + drop WP's default padding so the
  * full mark shows at every admin page (not just Strata's own). */
 #adminmenu #toplevel_page_strata .wp-menu-image img {
-	width: 20px;
-	height: 20px;
-	padding: 7px 0;
+	padding: 0;
+}
+#adminmenu #toplevel_page_strata:not(.current) .wp-menu-image img {
+	width: 35px;
+	height: 35px;
 }
 
 /* ---- Strata screen only ---- */
