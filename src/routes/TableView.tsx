@@ -20,7 +20,8 @@ import { getFormats, setFormats as persistFormats } from '../lib/formats';
 import type { RichKind } from '../lib/dataview';
 import type { Column, Formats, Pk, Row } from '../types';
 
-const PER_PAGE = 50;
+const PER_PAGE_OPTIONS = [50, 100, 250, 500];
+const DEFAULT_PER_PAGE = 50;
 
 type Drawer = { mode: 'new' } | { mode: 'edit'; pk: Pk } | null;
 
@@ -34,6 +35,9 @@ export default function TableView() {
   const sort = params.get('sort') ?? '';
   const dir = (params.get('dir') === 'DESC' ? 'DESC' : 'ASC') as 'ASC' | 'DESC';
   const search = params.get('search') ?? '';
+  const perPage = PER_PAGE_OPTIONS.includes(Number(params.get('per_page')))
+    ? Number(params.get('per_page'))
+    : DEFAULT_PER_PAGE;
 
   // Local search field, synced to URL. Debounced search-as-you-type (300ms);
   // Enter still submits immediately via the form below.
@@ -68,14 +72,14 @@ export default function TableView() {
 
   const { data, isFetching, error } = useRows(db, table, {
     page,
-    per_page: PER_PAGE,
+    per_page: perPage,
     sort,
     dir,
     search,
   });
 
   // Clear selection whenever the result set shifts (page/sort/search/table).
-  useEffect(() => setSelected(new Set()), [db, table, page, sort, dir, search]);
+  useEffect(() => setSelected(new Set()), [db, table, page, sort, dir, search, perPage]);
 
   function patch(next: Record<string, string | null>) {
     const sp = new URLSearchParams(params);
@@ -306,7 +310,11 @@ export default function TableView() {
               pages={data.pages}
               total={data.total}
               perPage={data.per_page}
+              perPageOptions={PER_PAGE_OPTIONS}
               onPage={(p) => patch({ page: p > 1 ? String(p) : null })}
+              onPerPage={(pp) =>
+                patch({ per_page: pp === DEFAULT_PER_PAGE ? null : String(pp), page: null })
+              }
             />
           </div>
         </>
