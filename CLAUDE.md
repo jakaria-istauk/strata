@@ -8,7 +8,6 @@ Project context for Claude Code. Read this first.
 
 - Product spec: [docs/PRD.md](docs/PRD.md)
 - Phased build plan: [docs/PLAN.md](docs/PLAN.md) — **check current phase before starting work**
-- User: linkon@wpdeveloper.com
 
 ## Stack & layout
 
