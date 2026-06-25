@@ -16,8 +16,8 @@ import {
   type RowGetResult,
   type RowSaveResult,
 } from '../types';
-import { HASH_ALGOS } from '../lib/formats';
 import { useToast } from './Toast';
+import HashSelect from './HashSelect';
 
 interface Props {
   db: string;
@@ -212,19 +212,10 @@ export default function RowDrawer({
                       </label>
                       {!auto && (
                       <div className="ml-auto flex items-center gap-sm">
-                        <select
+                        <HashSelect
                           value={formats[c.name] ?? ''}
-                          onChange={(e) => setFormat(c.name, e.target.value as HashAlgo | '')}
-                          className="rounded border border-outline-variant bg-surface-container-low px-xs py-0.5 text-xs text-on-surface-variant outline-none focus:border-primary"
-                          title="Hash format (applied server-side on save)"
-                        >
-                          <option value="">no hash</option>
-                          {HASH_ALGOS.map((a) => (
-                            <option key={a} value={a}>
-                              {a}
-                            </option>
-                          ))}
-                        </select>
+                          onChange={(algo) => setFormat(c.name, algo)}
+                        />
                         {isNullable(c) && (
                           <button
                             type="button"
@@ -255,6 +246,14 @@ export default function RowDrawer({
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {save.error && (
+          <div className="mx-lg mb-xs flex items-start gap-sm rounded-lg border border-error/40 bg-error/10 px-md py-sm text-xs text-error">
+            <span className="flex-1 break-words">
+              {save.error instanceof ApiError ? save.error.message : String(save.error)}
+            </span>
           </div>
         )}
 

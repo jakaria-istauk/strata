@@ -36,7 +36,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     (kind: ToastKind, message: string) => {
       const id = nextId++;
       setToasts((list) => [...list, { id, kind, message }]);
-      setTimeout(() => remove(id), 3500);
+      // Errors linger longer (and are read-worthy); successes dismiss quickly.
+      setTimeout(() => remove(id), kind === 'error' ? 7000 : 3500);
     },
     [remove],
   );
@@ -49,7 +50,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={api}>
       {children}
-      <div className="pointer-events-none fixed bottom-lg right-lg z-[60] flex flex-col gap-sm">
+      {/* z above the drawer overlay (z-50 / wp 100000) and wpadminbar (99999). */}
+      <div className="pointer-events-none fixed bottom-lg right-lg z-[100003] flex flex-col gap-sm">
         {toasts.map((t) => {
           const Icon = t.kind === 'success' ? CheckCircle2 : AlertCircle;
           return (
