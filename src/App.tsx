@@ -1,9 +1,9 @@
 // App shell — gates on an active connection, then renders the Explorer
 // (Sidebar + routed main). Real db/table browsing lives under /db/:db/...
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { Settings, Lock, Sun, Moon, Monitor } from 'lucide-react';
+import { Settings, Lock, Sun, Moon, Monitor, Maximize2, Minimize2 } from 'lucide-react';
 import ConnModal from './components/ConnModal';
 import Sidebar from './components/Sidebar';
 import TableView from './routes/TableView';
@@ -75,6 +75,7 @@ export default function App() {
           </span>
         </div>
         <div className="flex items-center gap-sm">
+          {IS_WP && <FullscreenToggle />}
           <ThemeToggle />
           {!IS_WP && (
             <button
@@ -173,6 +174,44 @@ function PasswordPrompt({
         </button>
       </div>
     </form>
+  );
+}
+
+// WP-only — hides the wp-admin top bar + side menu so Strata fills the screen.
+// Toggles a body class that admin.css animates (drawer slide). Choice persists.
+const FS_KEY = 'strata-fullscreen';
+
+function FullscreenToggle() {
+  const [on, setOn] = useState(() => localStorage.getItem(FS_KEY) === '1');
+
+  useEffect(() => {
+    document.body.classList.toggle('strata-fullscreen', on);
+    localStorage.setItem(FS_KEY, on ? '1' : '0');
+  }, [on]);
+
+  // Esc exits fullscreen.
+  useEffect(() => {
+    if (!on) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOn(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [on]);
+
+  // Cleanup if unmounted while active.
+  useEffect(() => () => document.body.classList.remove('strata-fullscreen'), []);
+
+  const Icon = on ? Minimize2 : Maximize2;
+  return (
+    <button
+      onClick={() => setOn((v) => !v)}
+      className="rounded-lg border border-outline-variant p-sm text-on-surface-variant hover:bg-surface-container-high"
+      title={on ? 'Exit full screen (Esc)' : 'Full screen'}
+      aria-label={on ? 'Exit full screen' : 'Full screen'}
+    >
+      <Icon size={16} />
+    </button>
   );
 }
 

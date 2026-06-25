@@ -46,3 +46,41 @@ body.toplevel_page_strata #adminmenuwrap {
 body.toplevel_page_strata .strata-overlay {
 	z-index: 100000;
 }
+
+/* ---- Full-screen mode (toggled from the app header) ----
+ * Slide the admin bar up and the side menu out (drawer animation), then
+ * reclaim the space so the app fills the viewport. Transitions are declared
+ * on the base selectors so the toggle animates both ways. */
+body.toplevel_page_strata #wpadminbar,
+body.toplevel_page_strata #adminmenuback,
+body.toplevel_page_strata #adminmenuwrap {
+	transition: transform 0.3s ease;
+}
+body.toplevel_page_strata #wpcontent,
+body.toplevel_page_strata #wpfooter,
+body.toplevel_page_strata .strata-app {
+	transition: margin-left 0.3s ease, height 0.3s ease;
+}
+html.wp-toolbar {
+	transition: padding-top 0.3s ease;
+}
+
+/* Fullscreen ON — admin bar slides up, menu slides left, content reclaims it. */
+html.wp-toolbar:has(body.toplevel_page_strata.strata-fullscreen) {
+	padding-top: 0;
+}
+body.toplevel_page_strata.strata-fullscreen #wpadminbar {
+	transform: translateY(-100%);
+}
+body.toplevel_page_strata.strata-fullscreen #adminmenuback,
+body.toplevel_page_strata.strata-fullscreen #adminmenuwrap {
+	transform: translateX(-100%);
+}
+body.toplevel_page_strata.strata-fullscreen #wpcontent,
+body.toplevel_page_strata.strata-fullscreen #wpfooter {
+	margin-left: 0;
+}
+body.toplevel_page_strata.strata-fullscreen .strata-app,
+body.toplevel_page_strata.strata-fullscreen #adminmenuwrap {
+	height: 100vh;
+}
