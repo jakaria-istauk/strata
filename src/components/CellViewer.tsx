@@ -6,13 +6,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { X, Copy, Check } from 'lucide-react';
 import type { Column } from '../types';
-import {
-  type RichKind,
-  beautifyJson,
-  beautifyPhp,
-  formatDateTime,
-  TZ_OPTIONS,
-} from '../lib/dataview';
+import { type RichKind, beautifyJson, beautifyPhp, formatDateTime } from '../lib/dataview';
+import TzSelect from './TzSelect';
 import { useToast } from './Toast';
 
 interface Props {
@@ -119,20 +114,10 @@ export default function CellViewer({ column, kind, value, onClose }: Props) {
         <div className="flex-1 overflow-auto p-lg">
           {kind === 'datetime' ? (
             <div className="space-y-md">
-              <label className="flex items-center gap-sm text-sm text-on-surface-variant">
-                Timezone
-                <select
-                  value={tz}
-                  onChange={(e) => setTz(e.target.value)}
-                  className="rounded-lg border border-outline-variant bg-surface-container-low px-sm py-xs text-sm text-on-surface outline-none focus:border-primary"
-                >
-                  {TZ_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <div className="flex items-center gap-sm text-sm text-on-surface-variant">
+                <span>Timezone</span>
+                <TzSelect value={tz} onChange={setTz} />
+              </div>
               {dateView ? (
                 <div className="space-y-sm">
                   <div className="text-lg font-medium text-on-surface">{dateView.formatted}</div>
