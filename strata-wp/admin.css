@@ -29,9 +29,17 @@ body.toplevel_page_strata #wpfooter {
 	display: none;
 }
 
-/* Admin bar steals 32px off the top; keep the app inside the viewport. */
+/* Admin bar steals 32px off the top; pin the app to the viewport. */
 body.toplevel_page_strata .strata-app {
 	height: calc(100vh - 32px);
+}
+
+/* The SPA freezes the document (`body { overflow: hidden }`), so a long admin
+ * menu would be unreachable. Give the menu its own scroll instead — the app
+ * stays fixed, only the menu column scrolls. */
+body.toplevel_page_strata #adminmenuwrap {
+	height: calc(100vh - 32px);
+	overflow-y: auto;
 }
 
 /* Drawer/overlay must clear #wpadminbar (z-index 99999). */
