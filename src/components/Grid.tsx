@@ -2,8 +2,9 @@
 // Presentational: sort/selection state + handlers come from TableView.
 
 import { Link } from 'react-router-dom';
-import { ArrowDown, ArrowUp, KeyRound, ExternalLink } from 'lucide-react';
+import { ArrowDown, ArrowUp, KeyRound, ExternalLink, Eye } from 'lucide-react';
 import type { Column, Fks, Row } from '../types';
+import { detectKind, type RichKind } from '../lib/dataview';
 
 interface Props {
   /** Active database — needed to build foreign-key links. */
@@ -23,6 +24,8 @@ interface Props {
   onToggleAll: () => void;
   allChecked: boolean;
   onRowOpen: (row: Row) => void;
+  /** Open the read-only viewer for a rich cell (JSON / serialized / datetime). */
+  onCellView: (column: Column, kind: RichKind, value: string) => void;
 }
 
 export default function Grid({
@@ -40,6 +43,7 @@ export default function Grid({
   onToggleAll,
   allChecked,
   onRowOpen,
+  onCellView,
 }: Props) {
   return (
     <div className="h-full overflow-auto rounded-lg border border-outline-variant">
@@ -120,35 +124,55 @@ export default function Grid({
                 {columns.map((c) => {
                   const v = row[c.name];
                   const fk = fks?.[c.name];
+                  const kind = !fk ? detectKind(c, v) : null;
                   return (
                     <td
                       key={c.name}
-                      className="max-w-xs truncate whitespace-nowrap border-b border-outline-variant px-md py-sm font-mono text-xs text-on-surface"
+                      className="max-w-xs border-b border-outline-variant px-md py-sm font-mono text-xs text-on-surface"
                       title={
                         fk && v !== null
                           ? `→ ${fk.table}.${fk.column} = ${v}`
                           : (v ?? 'NULL')
                       }
                     >
-                      {v === null ? (
-                        <span className="italic text-on-surface-variant/60">NULL</span>
-                      ) : v === '' ? (
-                        <span className="italic text-on-surface-variant/40">empty</span>
-                      ) : fk ? (
-                        <Link
-                          to={`/db/${encodeURIComponent(db)}/table/${encodeURIComponent(
-                            fk.table,
-                          )}?search=${encodeURIComponent(v)}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="inline-flex items-center gap-xs text-primary hover:underline"
-                          title={`→ ${fk.table}.${fk.column} = ${v}`}
-                        >
-                          {v}
-                          <ExternalLink size={11} className="shrink-0 opacity-60" />
-                        </Link>
-                      ) : (
-                        v
-                      )}
+                      <div className="flex items-center gap-xs">
+                        <span className="min-w-0 flex-1 truncate">
+                          {v === null ? (
+                            <span className="italic text-on-surface-variant/60">NULL</span>
+                          ) : v === '' ? (
+                            <span className="italic text-on-surface-variant/40">empty</span>
+                          ) : fk ? (
+                            <Link
+                              to={`/db/${encodeURIComponent(db)}/table/${encodeURIComponent(
+                                fk.table,
+                              )}?search=${encodeURIComponent(v)}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-flex items-center gap-xs text-primary hover:underline"
+                              title={`→ ${fk.table}.${fk.column} = ${v}`}
+                            >
+                              {v}
+                              <ExternalLink size={11} className="shrink-0 opacity-60" />
+                            </Link>
+                          ) : (
+                            v
+                          )}
+                        </span>
+                        {kind && v !== null && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onCellView(c, kind, v);
+                            }}
+                            className="shrink-0 rounded p-0.5 text-on-surface-variant/50 hover:bg-surface-container-high hover:text-primary"
+                            title={
+                              kind === 'datetime' ? 'View formatted date' : 'View beautified'
+                            }
+                            aria-label="View cell"
+                          >
+                            <Eye size={13} />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   );
                 })}

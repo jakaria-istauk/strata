@@ -13,10 +13,12 @@ import ColumnToggle from '../components/ColumnToggle';
 import RowDrawer from '../components/RowDrawer';
 import StructModal from '../components/StructModal';
 import ConfirmDanger from '../components/ConfirmDanger';
+import CellViewer from '../components/CellViewer';
 import { useToast } from '../components/Toast';
 import { api, ApiError, exportCsv } from '../api';
 import { getFormats, setFormats as persistFormats } from '../lib/formats';
-import type { Formats, Pk, Row } from '../types';
+import type { RichKind } from '../lib/dataview';
+import type { Column, Formats, Pk, Row } from '../types';
 
 const PER_PAGE = 50;
 
@@ -58,6 +60,7 @@ export default function TableView() {
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [drawer, setDrawer] = useState<Drawer>(null);
+  const [cell, setCell] = useState<{ column: Column; kind: RichKind; value: string } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showStruct, setShowStruct] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -167,7 +170,7 @@ export default function TableView() {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const el = e.target as HTMLElement;
       if (/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) || el.isContentEditable) return;
-      if (drawer || showStruct || confirmDelete) return;
+      if (drawer || showStruct || confirmDelete || cell) return;
       if (e.key === '/') {
         e.preventDefault();
         searchRef.current?.focus();
@@ -182,7 +185,7 @@ export default function TableView() {
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, drawer, showStruct, confirmDelete, db, table, search, sort, dir, exporting]);
+  }, [data, drawer, showStruct, confirmDelete, cell, db, table, search, sort, dir, exporting]);
 
   const allChecked = !!data && data.rows.length > 0 && selected.size === data.rows.length;
 
@@ -294,6 +297,7 @@ export default function TableView() {
               onToggleAll={toggleAll}
               allChecked={allChecked}
               onRowOpen={(row) => setDrawer({ mode: 'edit', pk: pkOf(row) })}
+              onCellView={(column, kind, value) => setCell({ column, kind, value })}
             />
           </div>
           <div className="shrink-0">
@@ -318,6 +322,15 @@ export default function TableView() {
           formats={formats}
           onFormatsChange={changeFormats}
           onClose={() => setDrawer(null)}
+        />
+      )}
+
+      {cell && (
+        <CellViewer
+          column={cell.column}
+          kind={cell.kind}
+          value={cell.value}
+          onClose={() => setCell(null)}
         />
       )}
 
