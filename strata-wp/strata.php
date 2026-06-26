@@ -3,7 +3,7 @@
  * Plugin Name:       Strata
  * Plugin URI:        https://github.com/jakaria-istauk/strata
  * Description:        Modern, self-hosted MySQL admin client inside wp-admin — a phpMyAdmin replacement with a React UI and WP-aware tools.
- * Version:           1.2.0
+ * Version:           1.2.1
  * Requires at least: 6.0
  * Requires PHP:      8.0
  * Author:            Jakaria Istauk
@@ -17,7 +17,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'STRATA_VERSION', '1.2.0' );
+define( 'STRATA_VERSION', '1.2.1' );
 define( 'STRATA_FILE', __FILE__ );
 define( 'STRATA_DIR', plugin_dir_path( __FILE__ ) );
 define( 'STRATA_URL', plugin_dir_url( __FILE__ ) );
