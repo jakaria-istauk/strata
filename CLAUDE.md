@@ -87,6 +87,7 @@ All planned API actions implemented.
 - React rebuild lives on branch `react`. Commit when the user asks. Author: Jakaria Istauk <jakariamd35@gmail.com>.
 - `ui/` and `legacy/` are gitignored (reference only). Don't re-add them.
 - `node_modules/`, `dist/`, the large `.zip`, and `tsc -b` artifacts (`*.tsbuildinfo`, `vite.config.js/.d.ts`) are gitignored.
+- **Releases:** GitHub release tag AND title are always `vX.Y.Z` (e.g. `v1.2.1`) — keep them identical, leading `v`, nothing else. `gh release create vX.Y.Z strata-wp.zip --title "vX.Y.Z" --notes "…"`.
 
 ## Status
 
