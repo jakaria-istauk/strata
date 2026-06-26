@@ -4,10 +4,11 @@
 import { useState } from 'react';
 import { useMatch, useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Table2, Search, Loader2, LayoutDashboard, Terminal, Plus, Trash2, Database } from 'lucide-react';
+import { Table2, Search, Loader2, LayoutDashboard, Terminal, Plus, Trash2, Database, ArrowUpCircle } from 'lucide-react';
 import { IS_WP } from '../lib/wp';
 import { useDatabases } from '../hooks/useDatabases';
 import { useTables } from '../hooks/useTables';
+import { useUpdateCheck } from '../hooks/useUpdateCheck';
 import DbSelect from './DbSelect';
 import NewDbModal from './NewDbModal';
 import NewTableModal from './NewTableModal';
@@ -26,6 +27,8 @@ export default function Sidebar() {
   const db =
     tableMatch?.params.db ?? queryMatch?.params.db ?? dashMatch?.params.db ?? dbMatch?.params.db;
   const activeTable = tableMatch?.params.table;
+
+  const update = useUpdateCheck();
 
   const { data: databases, isLoading: dbsLoading } = useDatabases();
   const { data: tables, isLoading: tablesLoading, error } = useTables(db);
@@ -206,17 +209,30 @@ export default function Sidebar() {
         </ul>
       </nav>
 
-      {/* Version badge */}
+      {/* Version badge + update notice */}
       <div className="border-t border-outline-variant px-sm py-xs text-center text-xs text-on-surface-variant">
-        <a
-          href="https://github.com/jakaria-istauk/strata/releases"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="font-mono hover:text-on-surface"
-          title="View releases on GitHub"
-        >
-          Strata v{__APP_VERSION__}
-        </a>
+        {update.available ? (
+          <a
+            href={update.url || 'https://github.com/jakaria-istauk/strata/releases'}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-sm rounded-lg bg-primary/10 px-sm py-xs font-medium text-primary hover:bg-primary/20"
+            title={`Strata ${update.latest} is available — you have ${__APP_VERSION__}`}
+          >
+            <ArrowUpCircle size={13} />
+            Update available · v{update.latest}
+          </a>
+        ) : (
+          <a
+            href="https://github.com/jakaria-istauk/strata/releases"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-mono hover:text-on-surface"
+            title="View releases on GitHub"
+          >
+            Strata v{__APP_VERSION__}
+          </a>
+        )}
       </div>
 
       {showNewDb && (
