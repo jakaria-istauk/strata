@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { api } from '../api';
-import type { RowsResult } from '../types';
+import type { Filter, RowsResult } from '../types';
 
 export interface RowsParams {
   page: number;
@@ -8,6 +8,7 @@ export interface RowsParams {
   sort: string;
   dir: 'ASC' | 'DESC';
   search: string;
+  filters?: Filter[];
 }
 
 export function useRows(

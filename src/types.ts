@@ -45,6 +45,16 @@ export type Pk = Record<string, string | null>;
 export type HashAlgo = 'md5' | 'sha1' | 'sha256';
 export type Formats = Record<string, HashAlgo>;
 
+/**
+ * One advanced-search condition. `value` is matched with LIKE (same as free
+ * search); `bool` joins this row to the previous one (ignored on the first).
+ */
+export interface Filter {
+  col: string;
+  value: string;
+  bool: 'AND' | 'OR';
+}
+
 export interface RowGetResult {
   columns: Column[];
   row: Row;

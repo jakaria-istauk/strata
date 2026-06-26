@@ -5,11 +5,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Loader2, X, Plus, Trash2, Table2, Download } from 'lucide-react';
+import { Search, Loader2, X, Plus, Trash2, Table2, Download, SlidersHorizontal } from 'lucide-react';
 import { useRows } from '../hooks/useRows';
 import Grid from '../components/Grid';
 import Pagination from '../components/Pagination';
 import ColumnToggle from '../components/ColumnToggle';
+import AdvancedSearch from '../components/AdvancedSearch';
 import RowDrawer from '../components/RowDrawer';
 import StructModal from '../components/StructModal';
 import ConfirmDanger from '../components/ConfirmDanger';
@@ -18,7 +19,7 @@ import { useToast } from '../components/Toast';
 import { api, ApiError, exportCsv } from '../api';
 import { getFormats, setFormats as persistFormats } from '../lib/formats';
 import type { RichKind } from '../lib/dataview';
-import type { Column, Formats, Pk, Row } from '../types';
+import type { Column, Filter, Formats, Pk, Row } from '../types';
 
 const PER_PAGE_OPTIONS = [50, 100, 250, 500];
 const DEFAULT_PER_PAGE = 50;
@@ -50,6 +51,31 @@ export default function TableView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchInput]);
 
+  // Advanced search — transient (not URL-backed): the drawer holds a live
+  // draft (`filterDraft`); a 300ms debounce promotes it to `filters`, which
+  // feeds the grid. Closing the drawer resets both → search clears.
+  const [advOpen, setAdvOpen] = useState(false);
+  const [filterDraft, setFilterDraft] = useState<Filter[]>([]);
+  const [filters, setFilters] = useState<Filter[]>([]);
+  const activeFilters = useMemo(
+    () => filters.filter((f) => f.col && f.value.trim() !== ''),
+    [filters],
+  );
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setFilters(filterDraft);
+      patch({ page: null });
+    }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterDraft]);
+
+  function closeAdvanced() {
+    setAdvOpen(false);
+    setFilterDraft([]);
+    setFilters([]);
+  }
+
   // Hidden columns — in-memory only (resets when the table changes).
   const [hidden, setHidden] = useState<string[]>([]);
   useEffect(() => setHidden([]), [db, table]);
@@ -76,10 +102,14 @@ export default function TableView() {
     sort,
     dir,
     search,
+    filters: activeFilters.length ? activeFilters : undefined,
   });
 
   // Clear selection whenever the result set shifts (page/sort/search/table).
-  useEffect(() => setSelected(new Set()), [db, table, page, sort, dir, search, perPage]);
+  useEffect(
+    () => setSelected(new Set()),
+    [db, table, page, sort, dir, search, perPage, activeFilters],
+  );
 
   function patch(next: Record<string, string | null>) {
     const sp = new URLSearchParams(params);
@@ -244,6 +274,25 @@ export default function TableView() {
           </div>
         </form>
 
+        <button
+          onClick={() => setAdvOpen(true)}
+          disabled={!data}
+          title="Advanced search"
+          aria-label="Advanced search"
+          className={`relative flex items-center rounded-lg border px-md py-sm text-sm hover:bg-surface-container-high disabled:opacity-40 ${
+            activeFilters.length
+              ? 'border-primary text-primary'
+              : 'border-outline-variant text-on-surface'
+          }`}
+        >
+          <SlidersHorizontal size={14} />
+          {activeFilters.length > 0 && (
+            <span className="ml-sm rounded-full bg-primary px-1.5 text-xs font-medium text-on-primary">
+              {activeFilters.length}
+            </span>
+          )}
+        </button>
+
         {data && data.columns.length > 0 && (
           <ColumnToggle columns={data.columns} hidden={hidden} onChange={setHidden} />
         )}
@@ -281,7 +330,11 @@ export default function TableView() {
         </div>
       ) : data.rows.length === 0 ? (
         <div className="rounded-lg border border-dashed border-outline-variant px-md py-xl text-center text-sm text-on-surface-variant">
-          {search ? `No rows match “${search}”.` : 'This table is empty.'}
+          {search
+            ? `No rows match “${search}”.`
+            : activeFilters.length
+              ? 'No rows match your filters.'
+              : 'This table is empty.'}
         </div>
       ) : (
         <>
@@ -318,6 +371,16 @@ export default function TableView() {
             />
           </div>
         </>
+      )}
+
+      {advOpen && data && table && (
+        <AdvancedSearch
+          table={table}
+          columns={data.columns}
+          value={filterDraft}
+          onChange={setFilterDraft}
+          onClose={closeAdvanced}
+        />
       )}
 
       {drawer && data && db && table && (

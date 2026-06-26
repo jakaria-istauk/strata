@@ -139,6 +139,34 @@ function columnsOf(PDO $p, string $db, string $table): array {
 }
 
 /**
+ * Build a parenthesised WHERE fragment from advanced per-column filters.
+ * Each filter {col,value,bool}: column validated against $colNames, value
+ * matched with CAST(col AS CHAR) LIKE '%value%' (same as free search), rows
+ * joined by their own AND/OR boolean (first row's boolean is ignored).
+ * Appends bound values to $params (by reference). Returns '' when no valid
+ * filters remain.
+ *
+ * @param mixed    $filters Raw client value (expected: list of assoc arrays).
+ * @param string[] $colNames
+ * @param array    $params  Bound-param accumulator, appended in clause order.
+ */
+function buildFilters($filters, array $colNames, array &$params): string {
+    if (!is_array($filters)) return '';
+    $expr = '';
+    foreach ($filters as $f) {
+        if (!is_array($f)) continue;
+        $col = (string)($f['col'] ?? '');
+        $val = (string)($f['value'] ?? '');
+        if ($col === '' || $val === '' || !in_array($col, $colNames, true)) continue;
+        $bool   = strtoupper((string)($f['bool'] ?? 'AND')) === 'OR' ? 'OR' : 'AND';
+        $clause = 'CAST(' . qid($col) . ' AS CHAR) LIKE ?';
+        $params[] = '%' . $val . '%';
+        $expr    .= ($expr === '' ? '' : " $bool ") . $clause;
+    }
+    return $expr === '' ? '' : '(' . $expr . ')';
+}
+
+/**
  * Build one column definition for CREATE/ALTER from a client-supplied spec.
  * Name is identifier-validated; type is regex-checked; default is quoted
  * (expression defaults like CURRENT_TIMESTAMP pass through unquoted).
@@ -352,7 +380,7 @@ switch ($action) {
         }
 
         // search across all columns (LIKE), bound params
-        $where  = '';
+        $conds  = [];
         $params = [];
         $search = trim((string)($IN['search'] ?? ''));
         if ($search !== '') {
@@ -361,8 +389,15 @@ switch ($action) {
                 $likes[] = 'CAST(' . qid($c) . " AS CHAR) LIKE ?";
                 $params[] = '%' . $search . '%';
             }
-            $where = ' WHERE (' . implode(' OR ', $likes) . ')';
+            $conds[] = '(' . implode(' OR ', $likes) . ')';
         }
+
+        // advanced per-column filters (LIKE, same as free search), each row
+        // joined by its own AND/OR boolean. {col,value,bool}. Cols validated.
+        $filterSql = buildFilters($IN['filters'] ?? null, $colNames, $params);
+        if ($filterSql !== '') $conds[] = $filterSql;
+
+        $where = $conds ? ' WHERE ' . implode(' AND ', $conds) : '';
 
         $conn = pdo($db);
 
