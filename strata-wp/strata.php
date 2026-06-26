@@ -37,13 +37,13 @@ add_action( 'rest_api_init', 'strata_init' );
 
 /**
  * GitHub release updater — checks for newer tagged releases and surfaces the
- * standard wp-admin update notice. Runs in admin/cron contexts only.
+ * standard wp-admin update notice. Registered at load so the update-transient
+ * filter is attached before WordPress rebuilds that transient (cron rebuilds
+ * it on the `wp_update_plugins` action, where a late-attached filter would be
+ * skipped). The filter itself only hits the network when the transient is
+ * actually rebuilt, so always registering it is cheap.
  */
-function strata_updater_init() {
-	( new Strata_Updater( STRATA_FILE, STRATA_VERSION ) )->register();
-}
-add_action( 'admin_init', 'strata_updater_init' );
-add_action( 'wp_update_plugins', 'strata_updater_init' );
+( new Strata_Updater( STRATA_FILE, STRATA_VERSION ) )->register();
 
 /**
  * Admin menu page — single entry, React SPA mounts here.
