@@ -2,8 +2,8 @@
 // (Sidebar + routed main). Real db/table browsing lives under /db/:db/...
 
 import { useEffect, useState } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { Settings, Lock, Sun, Moon, Monitor, Maximize2, Minimize2 } from 'lucide-react';
+import { Routes, Route, Navigate, useMatch, useNavigate } from 'react-router-dom';
+import { Settings, Lock, Sun, Moon, Monitor, Maximize2, Minimize2, ChevronRight, Database, Table2, LayoutDashboard, Terminal } from 'lucide-react';
 import ConnModal from './components/ConnModal';
 import Sidebar from './components/Sidebar';
 import TableView from './routes/TableView';
@@ -73,6 +73,7 @@ export default function App() {
           <span className="ml-sm rounded-full bg-secondary-container px-sm py-xs text-xs text-on-secondary-container">
             {profile.name}
           </span>
+          <Breadcrumb />
         </div>
         <div className="flex items-center gap-sm">
           {IS_WP && <FullscreenToggle />}
@@ -120,6 +121,74 @@ export default function App() {
         />
       )}
     </div>
+  );
+}
+
+// Header breadcrumb — the only path back up from a table to its db's table
+// list, and from a db to the database cards. Reads the active db/table/section
+// from the URL. In WP the host is locked to one db, so the "Databases" crumb
+// (which would link to the hidden DatabaseList) is omitted.
+function Breadcrumb() {
+  const navigate = useNavigate();
+  const tableMatch = useMatch('/db/:db/table/:table');
+  const queryMatch = useMatch('/db/:db/query');
+  const dashMatch = useMatch('/db/:db/dashboard');
+  const dbMatch = useMatch('/db/:db');
+  const db =
+    tableMatch?.params.db ?? queryMatch?.params.db ?? dashMatch?.params.db ?? dbMatch?.params.db;
+  const table = tableMatch?.params.table;
+
+  if (!db) return null;
+
+  const sep = <ChevronRight size={14} className="shrink-0 text-on-surface-variant" />;
+  const crumb = 'flex items-center gap-xs rounded-md px-sm py-xs text-sm hover:bg-surface-container-high';
+
+  return (
+    <nav className="ml-sm flex items-center gap-xs text-on-surface-variant">
+      {!IS_WP && (
+        <>
+          <button onClick={() => navigate('/')} className={crumb} title="All databases">
+            <Database size={14} /> Databases
+          </button>
+          {sep}
+        </>
+      )}
+      {table || queryMatch || dashMatch ? (
+        <button
+          onClick={() => navigate(`/db/${encodeURIComponent(db)}`)}
+          className={`${crumb} text-on-surface`}
+          title="Table list"
+        >
+          {db}
+        </button>
+      ) : (
+        <span className="px-sm py-xs text-sm font-medium text-on-surface">{db}</span>
+      )}
+      {table && (
+        <>
+          {sep}
+          <span className="flex items-center gap-xs px-sm py-xs text-sm font-medium text-on-surface">
+            <Table2 size={14} /> {table}
+          </span>
+        </>
+      )}
+      {queryMatch && (
+        <>
+          {sep}
+          <span className="flex items-center gap-xs px-sm py-xs text-sm font-medium text-on-surface">
+            <Terminal size={14} /> SQL
+          </span>
+        </>
+      )}
+      {dashMatch && (
+        <>
+          {sep}
+          <span className="flex items-center gap-xs px-sm py-xs text-sm font-medium text-on-surface">
+            <LayoutDashboard size={14} /> Dashboard
+          </span>
+        </>
+      )}
+    </nav>
   );
 }
 
