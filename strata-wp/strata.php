@@ -25,6 +25,7 @@ define( 'STRATA_REST_NS', 'strata/v1' );
 
 require_once STRATA_DIR . 'includes/class-auth.php';
 require_once STRATA_DIR . 'includes/class-rest.php';
+require_once STRATA_DIR . 'includes/class-updater.php';
 
 /**
  * Boot the plugin.
@@ -33,6 +34,16 @@ function strata_init() {
 	( new Strata_REST() )->register();
 }
 add_action( 'rest_api_init', 'strata_init' );
+
+/**
+ * GitHub release updater — checks for newer tagged releases and surfaces the
+ * standard wp-admin update notice. Runs in admin/cron contexts only.
+ */
+function strata_updater_init() {
+	( new Strata_Updater( STRATA_FILE, STRATA_VERSION ) )->register();
+}
+add_action( 'admin_init', 'strata_updater_init' );
+add_action( 'wp_update_plugins', 'strata_updater_init' );
 
 /**
  * Admin menu page — single entry, React SPA mounts here.
