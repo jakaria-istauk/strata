@@ -47,8 +47,46 @@ class Strata_Updater {
 	public function register() {
 		add_filter( 'pre_set_site_transient_update_plugins', array( $this, 'inject_update' ) );
 		add_filter( 'plugins_api', array( $this, 'plugin_info' ), 20, 3 );
+		// Normalise the extracted folder name so the update lands back in our slug.
+		add_filter( 'upgrader_source_selection', array( $this, 'fix_source_dir' ), 10, 4 );
 		// Bust the cache after a successful update so we don't re-offer it.
 		add_action( 'upgrader_process_complete', array( $this, 'flush_cache' ), 10, 2 );
+	}
+
+	/**
+	 * Rename the unpacked release directory to the plugin slug.
+	 *
+	 * GitHub's source zipball (and an asset zip whose top folder isn't the slug,
+	 * e.g. "strata-wp/") unpacks to a differently-named directory. Without this,
+	 * WordPress would install the update into that new folder, orphaning and
+	 * deactivating the original. Scoped strictly to our own update via the
+	 * hook_extra plugin path so other plugins' updates are untouched.
+	 *
+	 * @param string      $source        Unpacked source directory (…/strata-xxxx/).
+	 * @param string      $remote_source The WP_Upgrader working dir.
+	 * @param WP_Upgrader $upgrader
+	 * @param array       $hook_extra
+	 * @return string|WP_Error The corrected source path.
+	 */
+	public function fix_source_dir( $source, $remote_source, $upgrader, $hook_extra = array() ) {
+		if ( empty( $hook_extra['plugin'] ) || $hook_extra['plugin'] !== $this->basename ) {
+			return $source;
+		}
+
+		$desired = trailingslashit( $remote_source ) . $this->slug;
+		$source  = untrailingslashit( $source );
+
+		if ( $source === untrailingslashit( $desired ) ) {
+			return trailingslashit( $desired );
+		}
+
+		global $wp_filesystem;
+		if ( $wp_filesystem && $wp_filesystem->move( $source, $desired, true ) ) {
+			return trailingslashit( $desired );
+		}
+
+		// Move failed — return the original so the update can still proceed.
+		return trailingslashit( $source );
 	}
 
 	/**
