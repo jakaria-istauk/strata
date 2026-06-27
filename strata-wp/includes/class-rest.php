@@ -585,12 +585,39 @@ class Strata_REST {
 	 * @throws Strata_Fail 403 on a cross-database attempt.
 	 */
 	private function assert_query_scope( $sql ) {
-		if ( preg_match( '/\bshow\s+(databases|schemas)\b/i', $sql )
-			|| preg_match( '/\buse\s+[`"\']?[A-Za-z0-9_$]+/i', $sql ) ) {
+		// Normalise first so denylist patterns can't be smuggled past via
+		// string literals, comments (/* */, --, #), or odd spacing. String
+		// literals are blanked BEFORE comment stripping so a `/*` living inside
+		// a string can't corrupt the scan. Backtick identifiers are preserved.
+		$norm = preg_replace( "/'(?:[^'\\\\]|\\\\.)*'/", "''", $sql );   // single-quoted strings
+		$norm = preg_replace( '/"(?:[^"\\\\]|\\\\.)*"/', '""', $norm );  // double-quoted strings
+		$norm = preg_replace( '#/\*.*?\*/#s', ' ', $norm );             // block comments
+		$norm = preg_replace( '/(?:--|#)[^\n]*/', ' ', $norm );         // line comments
+		$norm = preg_replace( '/\s+/', ' ', (string) $norm );           // collapse whitespace
+
+		// Server-wide enumeration / DB switching.
+		if ( preg_match( '/\bshow\s+(databases|schemas)\b/i', $norm )
+			|| preg_match( '/\buse\s+[`"\']?[A-Za-z0-9_$]+/i', $norm ) ) {
 			throw new Strata_Fail( 403, 'Cross-database access is disabled — Strata is locked to the site database.' );
 		}
+
 		$site = strtolower( $this->site_db() );
-		if ( preg_match_all( '/\b(?:from|join|into|update|table)\s+[`"\']?([A-Za-z0-9_$]+)[`"\']?\s*\./i', $sql, $m ) ) {
+
+		// SHOW forms whose FROM/IN token is a DATABASE (not a table): TABLES,
+		// TABLE STATUS, TRIGGERS, EVENTS. (SHOW COLUMNS/INDEX FROM <table> take
+		// a table, so they are deliberately not matched here.)
+		if ( preg_match_all( '/\bshow\s+(?:full\s+)?(?:tables|table\s+status|triggers|events)\s+(?:from|in)\s+[`"\']?([A-Za-z0-9_$]+)/i', $norm, $m ) ) {
+			foreach ( $m[1] as $schema ) {
+				if ( strtolower( $schema ) !== $site ) {
+					throw new Strata_Fail( 403, "Cross-database access to `$schema` is disabled — Strata is locked to the site database." );
+				}
+			}
+		}
+
+		// Schema-qualified references: from|join|into|update|table `schema`.`tbl`.
+		// `[\s(]*` after the keyword catches the no-space `FROM(other.t)` form;
+		// `u.name` aliases are untouched (no preceding from/join/etc. keyword).
+		if ( preg_match_all( '/\b(?:from|join|into|update|table)\b[\s(]*[`"\']?([A-Za-z0-9_$]+)[`"\']?\s*\./i', $norm, $m ) ) {
 			foreach ( $m[1] as $schema ) {
 				if ( strtolower( $schema ) !== $site ) {
 					throw new Strata_Fail( 403, "Cross-database access to `$schema` is disabled — Strata is locked to the site database." );
