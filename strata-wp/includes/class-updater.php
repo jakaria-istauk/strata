@@ -173,7 +173,11 @@ class Strata_Updater {
 				'tested'      => get_bloginfo( 'version' ),
 			);
 		} else {
-			// Up to date — list under no_update so WP shows the correct state.
+			// Up to date — clear any stale "update available" row (e.g. left by
+			// an out-of-band file update that never triggered a transient
+			// rebuild) so the phantom notice self-heals, then list under
+			// no_update so WP shows the correct state.
+			unset( $transient->response[ $this->basename ] );
 			$transient->no_update[ $this->basename ] = (object) array(
 				'slug'        => $this->slug,
 				'plugin'      => $this->basename,
