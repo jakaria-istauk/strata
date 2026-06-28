@@ -64,6 +64,24 @@ function strata_admin_menu() {
 add_action( 'admin_menu', 'strata_admin_menu' );
 
 /**
+ * Add a "Dashboard" row action on the Plugins list so users can jump
+ * straight to the Strata SPA page without hunting the admin menu.
+ *
+ * @param string[] $links Existing action links.
+ * @return string[]
+ */
+function strata_plugin_action_links( $links ) {
+	$dashboard = sprintf(
+		'<a href="%s">%s</a>',
+		esc_url( admin_url( 'admin.php?page=strata' ) ),
+		esc_html__( 'Dashboard', 'strata' )
+	);
+	array_unshift( $links, $dashboard );
+	return $links;
+}
+add_filter( 'plugin_action_links_' . plugin_basename( STRATA_FILE ), 'strata_plugin_action_links' );
+
+/**
  * Strip all admin notices on the Strata screen so injected notices from
  * other plugins/core don't break the full-bleed SPA layout. Scoped to the
  * Strata page load only — leaves every other admin screen untouched.
