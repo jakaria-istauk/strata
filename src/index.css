@@ -105,3 +105,35 @@ body {
   backdrop-filter: blur(12px);
   border: 1px solid rgb(var(--outline-variant));
 }
+
+/* WordPress admin (wp-admin/css/forms.css) restyles native <select> with a
+   white background, fixed 40px height, gray border, 2px radius and its own
+   arrow — which clobbers the app theme (e.g. the pagination "Rows" picker).
+   Scoped to the WP mount id (#strata-root); the standalone build mounts on
+   #root and is left untouched. */
+#strata-root select {
+  height: auto;
+  min-height: 0;
+  max-width: none;
+  margin: 0;
+  line-height: 1.4;
+  font-family: inherit;
+  font-size: 0.875rem;
+  color: rgb(var(--on-surface));
+  background-color: rgb(var(--surface-container-low));
+  border: 1px solid rgb(var(--outline-variant));
+  border-radius: 0.5rem;
+  box-shadow: none;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 1rem;
+  padding: 0.25rem 1.75rem 0.25rem 0.5rem;
+}
+#strata-root select:focus {
+  border-color: rgb(var(--primary));
+  outline: none;
+  box-shadow: none;
+}
