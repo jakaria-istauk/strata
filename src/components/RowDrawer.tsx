@@ -32,6 +32,12 @@ interface Props {
 
 const isAuto = (c: Column) => c.extra.includes('auto_increment');
 
+// Long/blob/json columns get a taller editor by default (still user-resizable).
+const LONG_TYPES = new Set([
+  'text', 'tinytext', 'mediumtext', 'longtext', 'json', 'blob', 'mediumblob', 'longblob',
+]);
+const isLong = (c: Column) => LONG_TYPES.has(c.type.toLowerCase());
+
 export default function RowDrawer({
   db,
   table,
@@ -234,7 +240,7 @@ export default function RowDrawer({
                       )}
                     </div>
                     <textarea
-                      rows={1}
+                      rows={isLong(c) ? 6 : 1}
                       aria-label={c.name}
                       disabled={isNull || auto}
                       value={isNull ? '' : (values[c.name] ?? '')}

@@ -57,30 +57,44 @@ export function looksPhp(s: string): boolean {
  * class name under `__class__`). Returns `undefined` on malformed input.
  */
 export function phpUnserialize(input: string): unknown | undefined {
-  const s = input.trim();
+  // PHP's `s:<n>:"…"` counts n in BYTES, not characters. Parse over the UTF-8
+  // byte stream so multibyte content (emoji, accented text, …) stays in sync.
+  const bytes = new TextEncoder().encode(input.trim());
+  const decoder = new TextDecoder();
   let i = 0;
   const fail = (): never => {
     throw new Error('php parse error');
   };
+  const at = (k: number) => String.fromCharCode(bytes[k]); // structural bytes are ASCII
   const expect = (ch: string) => {
-    if (s[i] !== ch) fail();
+    if (bytes[i] !== ch.charCodeAt(0)) fail();
     i++;
   };
   const readUntil = (ch: string): string => {
-    const j = s.indexOf(ch, i);
-    if (j < 0) fail();
-    const out = s.slice(i, j);
+    const target = ch.charCodeAt(0);
+    let j = i;
+    while (j < bytes.length && bytes[j] !== target) j++;
+    if (j >= bytes.length) fail();
+    const out = decoder.decode(bytes.subarray(i, j));
     i = j + 1;
     return out;
   };
+  const readString = (): string => {
+    const len = parseInt(readUntil(':'), 10); // byte length
+    expect('"');
+    const out = decoder.decode(bytes.subarray(i, i + len));
+    i += len;
+    expect('"');
+    return out;
+  };
   function value(): unknown {
-    switch (s[i]) {
+    switch (at(i)) {
       case 'N':
         i += 2; // N;
         return null;
       case 'b': {
         i += 2; // b:
-        const v = s[i] === '1';
+        const v = bytes[i] === 0x31; // '1'
         i += 2; // 1;
         return v;
       }
@@ -92,11 +106,7 @@ export function phpUnserialize(input: string): unknown | undefined {
         return parseFloat(readUntil(';'));
       case 's': {
         i += 2; // s:
-        const len = parseInt(readUntil(':'), 10);
-        expect('"');
-        const out = s.slice(i, i + len);
-        i += len;
-        expect('"');
+        const out = readString();
         expect(';');
         return out;
       }
@@ -116,11 +126,7 @@ export function phpUnserialize(input: string): unknown | undefined {
       }
       case 'O': {
         i += 2; // O:
-        const len = parseInt(readUntil(':'), 10);
-        expect('"');
-        const cls = s.slice(i, i + len);
-        i += len;
-        expect('"');
+        const cls = readString(); // class name
         expect(':');
         const count = parseInt(readUntil(':'), 10);
         expect('{');
