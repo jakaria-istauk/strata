@@ -46,6 +46,10 @@ class Strata_Updater {
 	 */
 	public function register() {
 		add_filter( 'pre_set_site_transient_update_plugins', array( $this, 'inject_update' ) );
+		// Sanitise the cached transient on every read (no network) so a stale
+		// "update available" row self-heals on plain page views, not only when
+		// WP rebuilds the transient.
+		add_filter( 'site_transient_update_plugins', array( $this, 'sanitize_transient' ) );
 		add_filter( 'plugins_api', array( $this, 'plugin_info' ), 20, 3 );
 		// Normalise the extracted folder name so the update lands back in our slug.
 		add_filter( 'upgrader_source_selection', array( $this, 'fix_source_dir' ), 10, 4 );
@@ -159,11 +163,14 @@ class Strata_Updater {
 		}
 
 		$release = $this->latest_release();
-		if ( ! $release || '' === $release['zip'] ) {
-			return $transient;
-		}
 
-		if ( version_compare( $release['version'], $this->version, '>' ) ) {
+		// A genuinely newer release exists only when the fetch succeeded, has a
+		// package, AND its version is ahead of what's installed.
+		$has_update = $release
+			&& '' !== $release['zip']
+			&& version_compare( $release['version'], $this->version, '>' );
+
+		if ( $has_update ) {
 			$transient->response[ $this->basename ] = (object) array(
 				'slug'        => $this->slug,
 				'plugin'      => $this->basename,
@@ -172,18 +179,59 @@ class Strata_Updater {
 				'url'         => $release['url'],
 				'tested'      => get_bloginfo( 'version' ),
 			);
-		} else {
-			// Up to date — clear any stale "update available" row (e.g. left by
-			// an out-of-band file update that never triggered a transient
-			// rebuild) so the phantom notice self-heals, then list under
-			// no_update so WP shows the correct state.
+			unset( $transient->no_update[ $this->basename ] );
+			return $transient;
+		}
+
+		// No newer release — OR the GitHub check failed/was rate-limited. Either
+		// way clear any stale "update available" row so the phantom notice
+		// self-heals even when the API is unreachable (the early-return that
+		// used to live here let a stale row survive a failed fetch), then list
+		// under no_update so WP shows the correct state.
+		unset( $transient->response[ $this->basename ] );
+		$transient->no_update[ $this->basename ] = (object) array(
+			'slug'        => $this->slug,
+			'plugin'      => $this->basename,
+			'new_version' => $this->version,
+			'package'     => '',
+			'url'         => $release ? $release['url'] : '',
+		);
+
+		return $transient;
+	}
+
+	/**
+	 * Strip a stale "update available" row from the cached transient on read.
+	 *
+	 * Runs on every `get_site_transient('update_plugins')` with zero network
+	 * cost. `inject_update` only fires when WP *rebuilds* the transient; between
+	 * rebuilds the persisted transient can still carry a phantom response row
+	 * (e.g. left by an out-of-band file update). This drops any row for our
+	 * plugin whose advertised version isn't actually newer than what's
+	 * installed, so the notice clears on a plain page view.
+	 *
+	 * @param mixed $transient The update_plugins transient.
+	 * @return mixed
+	 */
+	public function sanitize_transient( $transient ) {
+		if ( ! is_object( $transient ) || empty( $transient->response[ $this->basename ] ) ) {
+			return $transient;
+		}
+
+		$row = $transient->response[ $this->basename ];
+		$new = isset( $row->new_version ) ? (string) $row->new_version : '';
+
+		if ( '' === $new || version_compare( $new, $this->version, '<=' ) ) {
 			unset( $transient->response[ $this->basename ] );
+			if ( ! isset( $transient->no_update ) || ! is_array( $transient->no_update ) ) {
+				$transient->no_update = array();
+			}
 			$transient->no_update[ $this->basename ] = (object) array(
 				'slug'        => $this->slug,
 				'plugin'      => $this->basename,
 				'new_version' => $this->version,
 				'package'     => '',
-				'url'         => $release['url'],
+				'url'         => isset( $row->url ) ? $row->url : '',
 			);
 		}
 
